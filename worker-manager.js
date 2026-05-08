@@ -1,13 +1,9 @@
-// worker-manager.js  –  optimised
-// Workers are created once and reused.
-// Building data is sent via 'init' on first use, not repeated per task.
-// Cancellation sends a 'cancel' message instead of terminate() so the
-// worker stays alive for the next analysis.
+// worker-manager.js  
 
 class WorkerManager {
     constructor() {
-        this.workers           = new Map();   // taskType → Worker
-        this.initialised       = new Set();   // taskTypes whose workers have received 'init'
+        this.workers           = new Map();   
+        this.initialised       = new Set();   
         this.taskCancelCallbacks = new Map();
         this.isWorkerSupported = typeof Worker !== 'undefined';
         this._buildingData     = null;
@@ -32,11 +28,9 @@ class WorkerManager {
         }
     }
 
-    // Call once after building detection is complete.
-    // Re-sends init to any workers already created.
     setBuildingData(buildingData) {
         this._buildingData = buildingData;
-        this.initialised.clear();                        // force re-init on next task
+        this.initialised.clear();                       
         for (const [taskType, w] of this.workers) {
             this._sendInit(taskType, w);
         }
@@ -92,7 +86,6 @@ class WorkerManager {
                 reject(err);
             };
 
-            // cancelFn defined after onMsg/onErr so it can remove them
             const cancelFn = () => {
                 worker.postMessage({ type: 'cancel' });
                 worker.removeEventListener('message', onMsg);
@@ -109,7 +102,6 @@ class WorkerManager {
         });
     }
 
-    // Convenience wrapper used by multi-coverage path
     async executeMultiCoverageTask(baseStations, gridParams, onProgress = null) {
         return this.executeTask('multi-coverage-analysis', { baseStations, gridParams }, onProgress);
     }
@@ -444,7 +436,7 @@ class FallbackSINRWorker extends FallbackBase {
                     PL += (Math.random() - 0.5) * 8;
 
                     const S_lin = Math.pow(10, (txPower - PL) / 10);
-                    const I_lin = basePow * tierAtt;  // simplified aggregate interference
+                    const I_lin = basePow * tierAtt;  
                     const sinr_dB = Math.max(-20, Math.min(30, 10 * Math.log10(S_lin / (I_lin + N_lin))));
 
                     sinrPoints.push({
@@ -543,4 +535,4 @@ class FallbackFairnessWorker extends FallbackBase {
 }
 
 const workerManager = new WorkerManager();
-window.workerManager = workerManager;  // expose globally for interactive-mode.js and other modules
+window.workerManager = workerManager; 

@@ -1,11 +1,7 @@
-// sinr-worker.js  –  integrated with WorkerManager protocol
-// Supports: init (building data), cancel, start messages
-// Progress format matches worker-manager expectations: { type:'progress', progress:<0-100>, taskId, data:{processed,total} }
-// Complete format: { type:'complete', taskId, data:{ sinrPoints, avgSinr, maxSinr, minSinr, pointsAnalyzed } }
-
+// sinr-worker.js  
 class SINRWorker {
     constructor() {
-        this.buildingData = null;   // stored once via 'init', not re-sent per task
+        this.buildingData = null;   
         this.isCancelled  = false;
         self.addEventListener('message', this.handleMessage.bind(this));
     }

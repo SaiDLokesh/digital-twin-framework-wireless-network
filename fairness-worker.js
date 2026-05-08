@@ -1,4 +1,4 @@
-// fairness-worker.js  –  integrated with WorkerManager protocol
+// fairness-worker.js 
 // Supports: init (building data), cancel, start messages
 // Input:  { sinrPoints: [{position, sinr}], totalBandwidth: number }
 // Output: { throughputMap, loadMap, congestionMap, fairnessValue, avgThroughput,
@@ -7,7 +7,7 @@
 
 class FairnessWorker {
     constructor() {
-        this.buildingData = null;   // stored via 'init' (not used by this worker but kept for protocol consistency)
+        this.buildingData = null;  
         this.isCancelled  = false;
         self.addEventListener('message', this.handleMessage.bind(this));
     }

@@ -1,7 +1,4 @@
 // interactive-mode.js – Full interactive mode with contour chain modal
-// - User must click "Start Optimisation" after adjusting params
-// - Closing modal cancels the running optimisation
-// - Building and crowd losses are correctly passed to the worker
 
 (function() {
     let scene, camera, controls, renderer;
@@ -66,9 +63,6 @@
         if (typeof updateGridRange === 'function') updateGridRange();
     }
 
-    // Rebuild building data and also send to workerManager.
-    // Works even when window.buildingDetection is null (pure interactive mode —
-    // no pre-loaded 3D model) so that user-placed buildings are always included.
     const FALLBACK_MATERIAL_LOSSES = {
         glass: 2.5, wood: 6.0, drywall: 4.0, brick: 12.0,
         concrete: 15.0, concrete_slab: 25.0, metal: 40.0,
@@ -79,9 +73,6 @@
     };
 
     function rebuildBuildingData() {
-        // Normalise a building's bounding boxes to plain {x,y,z} objects.
-        // Scene buildings store THREE.Vector3 instances; custom buildings may too.
-        // Plain objects are required for safe postMessage serialisation.
         const toPlain = v => ({ x: v.x, y: v.y, z: v.z });
         const normaliseBB = (hb) => ({
             ...hb,
@@ -95,12 +86,12 @@
             }
         });
 
-        // Scene buildings (from loaded 3D model) — normalise their bounding boxes
+        // Scene buildings (from loaded 3D model) 
         const original = (window.buildingDetection && window.buildingDetection.hollowBuildings)
             ? window.buildingDetection.hollowBuildings.map(normaliseBB)
             : [];
 
-        // User-placed buildings — also normalise
+        // User-placed buildings 
         const custom = interactiveObjects.buildings.map(b => normaliseBB(b.hollowBuilding));
 
         const all = [...original, ...custom];
@@ -827,13 +818,12 @@
             ctx.textAlign = 'left';
         }
     }
-    // Cancel: stops worker, shows import button, keeps modal open
     function _ccCancel() {
         if (!ccRunning) return;
         if (window.workerManager) window.workerManager.cancelAllTasks();
         currentTaskId = null;
         ccRunning     = false;
-        _ccRunGeneration++;       // invalidate in-flight finally
+        _ccRunGeneration++;       
         _ccHideWorking('#f97316');
         setStatus('Optimisation cancelled.');
         const sb = document.getElementById('modal-start-opt');
@@ -845,7 +835,7 @@
             if (st) st.innerHTML = '\u23f9 Cancelled \u2014 no BS placed yet. Adjust parameters and restart.';
         }
     }
-    // Start: runs the optimiser
+  
     async function _ccStart() {
         if (ccRunning) return;
         _ccLastPlacements = [];
@@ -944,7 +934,7 @@
         const modal = document.getElementById('contour-modal');
         if (!modal) { alert('Modal not found.'); return; }
 
-        // Create buttons once
+      
         if (!document.getElementById('modal-start-opt')) {
             const row = document.createElement('div');
             row.id = 'modal-btn-row';
@@ -959,7 +949,7 @@
             (modal.querySelector('.modal-body') || modal).appendChild(row);
         }
 
-        // Wire buttons on every open (safe to reassign)
+        
         const sb = document.getElementById('modal-start-opt');
         const cb = document.getElementById('modal-cancel-opt');
         if (sb) sb.onclick = _ccStart;

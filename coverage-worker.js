@@ -1,9 +1,9 @@
-// coverage-worker.js  –  optimised
+// coverage-worker.js  
 importScripts('path-loss-models.js');
 
 class CoverageWorker {
     constructor() {
-        this.buildingData = null;          // stored on init, not re-sent per task
+        this.buildingData = null;         
         this.isCancelled   = false;
         self.addEventListener('message', this.handleMessage.bind(this));
     }

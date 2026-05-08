@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Wireless Coverage Analysis</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="model-container"></div>
+    
+    <!-- Progress Overlay -->
+    <div id="progress-overlay" class="progress-overlay hidden">
+        <div class="progress-content">
+            <div class="progress-spinner"></div>
+            <h3 id="progress-title">Processing...</h3>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <p id="progress-message">Calculating coverage analysis...</p>
+            <p id="progress-details"></p>
+            <button id="cancel-btn" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+    
+    <div id="controls-panel">
+        <div id="panel-resizer" class="resizer"></div>
+
+        <div id="panel-header">
+            <h3>3D Wireless Coverage Analysis</h3>
+            <button id="toggle-panel" class="toggle-btn">▼</button>
+        </div>
+        
+        <div id="panel-content">
+            <div class="tool-selector">
+                <label><strong>Select Tool:</strong></label>
+                <select id="tool-select">
+                    <option value="view">3D View</option>
+                    <option value="pathloss">Path Loss Calculator</option>
+                    <option value="coverage">Single BS Coverage</option>
+                    <option value="multi-coverage">Multi-BS Coverage</option>
+                    <option value="delay">Delay Analysis</option>
+                    <option value="throughput">Throughput Analysis</option>
+                    <option value="crowd">Crowd Analysis</option>
+                    <option value="bs-optimiser">🧬 BS Placement Optimiser</option>
+                    <option value="contour-chain">🔗 Contour Chain BS Placer</option>
+                    <option value="sinr">📶 SINR Analysis</option>
+                    <option value="fairness">⚖️ Fairness Analysis</option>
+                    <option value="interactive">🎮 Interactive Mode</option>
+                </select>
+            </div>
+
+            <!-- Path Loss Calculator Tool -->
+            <div id="pathloss-tool" class="tool-section" style="display: none;">
+                <div class="point-info">
+                    <strong>Point 1 (Transmitter):</strong>
+                    <div id="point1-coords">Not selected</div>
+                </div>
+                <div class="point-info">
+                    <strong>Point 2 (Receiver):</strong>
+                    <div id="point2-coords">Not selected</div>
+                </div>
+                <div class="button-group">
+                    <button id="select-btn" class="btn btn-primary">Select Points</button>
+                    <button id="reset-btn" class="btn btn-secondary">Reset Selection</button>
+                </div>
+                <div class="control-group">
+                    <label><strong>Frequency (MHz):</strong></label>
+                    <input type="range" id="frequency" min="100" max="6000" value="2400">
+                    <div id="frequency-value" class="value-display">2400 MHz</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Transmitter Height (m):</strong></label>
+                    <input type="number" id="tx-height" min="1.5" max="100" value="25" step="0.1">
+                    <div id="tx-height-value" class="value-display">25 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Receiver Height (m):</strong></label>
+                    <input type="number" id="rx-height" min="1.5" max="22.5" value="1.5" step="0.1">
+                    <div id="rx-height-value" class="value-display">1.5 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Environment Type:</strong></label>
+                    <select id="environment">
+                        <option value="uma-los">UMa LOS</option>
+                        <option value="uma-nlos">UMa NLOS</option>
+                        <option value="umi-los">UMi LOS</option>
+                        <option value="umi-nlos">UMi NLOS</option>
+                    </select>
+                </div>
+                <button id="calculate-btn" class="btn btn-calculate">Calculate Path Loss</button>
+                <div id="result" class="result">
+                    <strong>Path Loss Result (3GPP UMa Model):</strong>
+                    <div id="path-loss-value">0.00 dB</div>
+                    <div id="distance-info">Distance: 0.00 m</div>
+                    <div id="model-info">Model: UMa LOS</div>
+                </div>
+            </div>
+
+            <!-- Single BS Coverage Analysis Tool -->
+            <div id="coverage-tool" class="tool-section" style="display: none;">
+                <div class="point-info">
+                    <strong>Transmitter Location:</strong>
+                    <div id="tx-coords">Not selected</div>
+                </div>
+                <div class="button-group">
+                    <button id="select-tx-btn" class="btn btn-primary">Select Transmitter</button>
+                    <button id="reset-coverage-btn" class="btn btn-secondary">Reset</button>
+                </div>
+                <div class="control-group">
+                    <label><strong>Antenna Direction (degrees):</strong></label>
+                    <input type="range" id="antenna-azimuth" min="0" max="360" value="0" step="1">
+                    <div id="antenna-azimuth-value" class="value-display">0°</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Antenna Beamwidth:</strong></label>
+                    <select id="antenna-beamwidth">
+                        <option value="360">Omnidirectional (360°)</option>
+                        <option value="120" selected>Directional (120°)</option>
+                        <option value="90">Sector (90°)</option>
+                        <option value="65">Narrow Sector (65°)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label><strong>Antenna Gain (dBi):</strong></label>
+                    <input type="range" id="antenna-gain" min="0" max="30" value="8" step="0.1">
+                    <div id="antenna-gain-value" class="value-display">8 dBi</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Transmit Power (dBm):</strong></label>
+                    <input type="range" id="tx-power" min="0" max="50" value="20" step="1">
+                    <div id="tx-power-value" class="value-display">20 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Transmitter Height (m):</strong></label>
+                    <input type="number" id="coverage-tx-height" min="1.5" max="100" value="25" step="0.1">
+                    <div id="coverage-tx-height-value" class="value-display">25 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Frequency (MHz):</strong></label>
+                    <input type="range" id="coverage-frequency" min="100" max="6000" value="2400">
+                    <div id="coverage-frequency-value" class="value-display">2400 MHz</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Coverage Radius (m):</strong></label>
+                    <input type="range" id="coverage-radius" min="10" max="500" value="100" step="10">
+                    <div id="coverage-radius-value" class="value-display">100 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Grid Resolution (m):</strong></label>
+                    <input type="range" id="resolution" min="1" max="20" value="5" step="1">
+                    <div id="resolution-value" class="value-display">5 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Environment Type:</strong></label>
+                    <select id="coverage-environment">
+                        <option value="uma-los">UMa LOS</option>
+                        <option value="uma-nlos">UMa NLOS</option>
+                        <option value="umi-los">UMi LOS</option>
+                        <option value="umi-nlos">UMi NLOS</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label><strong>Ray Tracing Mode:</strong></label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="ray-tracing" style="width: auto;">
+                        <label for="ray-tracing" style="margin: 0;">Enable Ray Tracing</label>
+                    </div>
+                </div>
+                <button id="analyze-coverage-btn" class="btn btn-calculate">Analyze Coverage</button>
+                <button id="show-map-btn" class="btn btn-info" style="width: 100%; margin-top: 10px;">Show Coverage Map</button>
+                <div id="coverage-result" class="result">
+                    <strong>Coverage Analysis Result:</strong>
+                    <div id="coverage-area" style="font-size: 20px; font-weight: bold; color: #17a2b8; margin: 8px 0;">0.00 m³</div>
+                    <div id="points-analyzed">Points Analyzed: 0</div>
+                    <div id="compute-time">Computation Time: 0.00 seconds</div>
+                    <div id="performance-info" style="font-size: 12px; color: #666; margin-top: 5px;"></div>
+                    <div id="coverage-model">Model: UMa LOS</div>
+                </div>
+            </div>
+
+            <!-- Multi-BS Coverage Analysis Tool -->
+            <div id="multi-coverage-tool" class="tool-section" style="display: none;">
+                <div style="background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #3182ce;">
+                    <h4 style="margin-top: 0; color: #2b6cb0;">Multi-Base Station Coverage Analysis</h4>
+                    <p style="margin: 10px 0 0 0; color: #4a5568; font-size: 14px;">Add multiple base stations with different configurations and analyze combined coverage.</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0; color: #2d3748;">Base Stations (<span id="bs-count">0</span>)</h4>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="add-bs-btn" class="btn btn-primary" style="padding: 8px 15px;"><span style="margin-right: 5px;">+</span> Add BS</button>
+                            <button id="import-bs-btn" class="btn btn-info" style="padding: 8px 15px;">📁 Import</button>
+                        </div>
+                    </div>
+                    <div id="bs-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #f8fafc;">
+                        <div id="bs-list"></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button id="remove-all-bs-btn" class="btn btn-secondary" style="flex: 1;">Remove All</button>
+                        <button id="export-bs-btn" class="btn btn-info" style="flex: 1;">Export Config</button>
+                    </div>
+                </div>
+                <div id="bs-config-panel" style="display: none; margin-bottom: 20px; border: 1px solid #3182ce; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #3182ce; color: white; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="bs-config-title">Configure Base Station</span>
+                        <button id="close-bs-config-btn" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">×</button>
+                    </div>
+                    <div style="padding: 15px; background: white;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <div class="control-group">
+                                    <label><strong>BS Name:</strong></label>
+                                    <input type="text" id="bs-name" class="form-control" placeholder="e.g., BS-1" value="BS-1">
+                                </div>
+                                <div class="control-group">
+                                    <label><strong>BS Color:</strong></label>
+                                    <input type="color" id="bs-color" value="#ff0000" style="width: 100%; height: 40px; border-radius: 4px; border: 1px solid #cbd5e0;">
+                                </div>
+                                <div class="control-group">
+                                    <label><strong>Transmit Power (dBm):</strong></label>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="bs-tx-power" min="0" max="50" value="20" step="1" style="flex: 1;">
+                                        <span id="bs-tx-power-value" style="min-width: 60px; text-align: center;">20 dBm</span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label><strong>Frequency (MHz):</strong></label>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="bs-frequency" min="100" max="6000" value="2400" step="100" style="flex: 1;">
+                                        <span id="bs-frequency-value" style="min-width: 60px; text-align: center;">2400 MHz</span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label><strong>Transmitter Height (m):</strong></label>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="bs-tx-height" min="1.5" max="100" value="25" step="0.5" style="flex: 1;">
+                                        <span id="bs-tx-height-value" style="min-width: 60px; text-align: center;">25 m</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="control-group">
+                                    <label><strong>Coverage Radius (m):</strong></label>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="bs-radius" min="10" max="500" value="100" step="10" style="flex: 1;">
+                                        <span id="bs-radius-value" style="min-width: 60px; text-align: center;">100 m</span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label><strong>Environment Type:</strong></label>
+                                    <select id="bs-environment" class="form-control">
+                                        <option value="uma-los">UMa LOS</option>
+                                        <option value="uma-nlos" selected>UMa NLOS</option>
+                                        <option value="umi-los">UMi LOS</option>
+                                        <option value="umi-nlos">UMi NLOS</option>
+                                    </select>
+                                </div>
+                                <div class="control-group">
+                                    <label><strong>Antenna Direction (degrees):</strong></label>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="bs-antenna-azimuth" min="0" max="360" value="0" step="1" style="flex: 1;">
+                                        <span id="bs-antenna-azimuth-value" style="min-width: 60px; text-align: center;">0°</span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label><strong>Antenna Beamwidth:</strong></label>
+                                    <select id="bs-antenna-beamwidth" class="form-control">
+                                        <option value="360">Omnidirectional (360°)</option>
+                                        <option value="120" selected>Directional (120°)</option>
+                                        <option value="90">Sector (90°)</option>
+                                        <option value="65">Narrow Sector (65°)</option>
+                                    </select>
+                                </div>
+                                <div class="control-group">
+                                    <label><strong>Antenna Gain (dBi):</strong></label>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="bs-antenna-gain" min="0" max="30" value="8" step="0.5" style="flex: 1;">
+                                        <span id="bs-antenna-gain-value" style="min-width: 60px; text-align: center;">8 dBi</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="control-group" style="grid-column: span 2;">
+                            <label><strong>Ray Tracing Mode:</strong></label>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: #f7fafc; border-radius: 4px;">
+                                <input type="checkbox" id="bs-ray-tracing" style="width: auto;">
+                                <label for="bs-ray-tracing" style="margin: 0; font-size: 14px;">Enable Ray Tracing (enhanced multipath simulation)</label>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button id="save-bs-btn" class="btn btn-primary" style="flex: 1;">Save Base Station</button>
+                            <button id="position-bs-btn" class="btn btn-info" style="flex: 1;"><span style="margin-right: 5px;">📍</span> Set Position</button>
+                            <button id="cancel-bs-btn" class="btn btn-secondary" style="flex: 1;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #38a169;">
+                    <h4 style="margin-top: 0; color: #22543d;">Analysis Grid Settings</h4>
+                    <div class="control-group" style="margin-bottom: 15px;">
+                        <label><strong>Grid Resolution (m):</strong></label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="range" id="multi-coverage-resolution" min="1" max="20" value="5" step="1" style="flex: 1;">
+                            <span id="multi-coverage-resolution-value" style="min-width: 60px; text-align: center;">5 m</span>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="control-group">
+                            <label><strong>Auto Grid Calculation:</strong></label>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 4px;">
+                                <input type="checkbox" id="auto-grid" checked style="width: auto;">
+                                <label for="auto-grid" style="margin: 0; font-size: 14px;">Auto-adjust based on BS positions</label>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label><strong>Grid Padding (m):</strong></label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="grid-padding" min="10" max="100" value="50" step="5" style="flex: 1;">
+                                <span id="grid-padding-value" style="min-width: 60px; text-align: center;">50 m</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 4px; border: 1px dashed #9ae6b4;">
+                        <div style="font-size: 13px; color: #22543d;">
+                            <strong>Current Grid Range:</strong>
+                            <div id="grid-range-info" style="margin-top: 5px;">X: -200 to 200 m, Y: 0 to 50 m, Z: -200 to 200 m</div>
+                            <div id="grid-points-info" style="font-size: 12px; color: #718096; margin-top: 5px;">Total points to analyze: Calculating...</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin: 20px 0;">
+                    <button id="analyze-multi-coverage-btn" class="btn btn-calculate" style="width: 100%; padding: 12px; font-size: 16px;"><span style="margin-right: 8px;">📊</span> Analyze Multi-BS Coverage</button>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button id="show-multi-coverage-map-btn" class="btn btn-info" style="flex: 1;"><span style="margin-right: 5px;">🗺️</span> Coverage Map</button>
+                        <button id="show-bs-comparison-btn" class="btn btn-info" style="flex: 1;"><span style="margin-right: 5px;">📈</span> BS Comparison</button>
+                        <button id="reset-multi-coverage-btn" class="btn btn-secondary" style="flex: 1;"><span style="margin-right: 5px;">🔄</span> Reset All</button>
+                    </div>
+                </div>
+                <div id="multi-coverage-result" class="result" style="display: none;">
+                    <div style="background: linear-gradient(135deg, #faf5ff 0%, #e9d8fd 100%); padding: 15px; border-radius: 10px; border-left: 4px solid #805ad5;">
+                        <h4 style="margin-top: 0; color: #44337a; border-bottom: 1px solid #d6bcfa; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>Multi-BS Coverage Analysis Result</span>
+                            <span style="font-size: 14px; background: white; padding: 4px 12px; border-radius: 12px; color: #805ad5; font-weight: bold;"><span id="total-coverage-percentage">0.00</span>%</span>
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0;">
+                            <div style="text-align: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <div style="font-size: 12px; color: #718096;">Coverage Points</div>
+                                <div style="font-size: 18px; font-weight: bold; color: #3182ce;" id="total-coverage-points">0</div>
+                            </div>
+                            <div style="text-align: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <div style="font-size: 12px; color: #718096;">Points Analyzed</div>
+                                <div style="font-size: 18px; font-weight: bold; color: #38a169;" id="multi-points-analyzed">0</div>
+                            </div>
+                            <div style="text-align: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <div style="font-size: 12px; color: #718096;">Computation Time</div>
+                                <div style="font-size: 18px; font-weight: bold; color: #dd6b20;" id="multi-compute-time">0.00s</div>
+                            </div>
+                            <div style="text-align: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <div style="font-size: 12px; color: #718096;">Coverage Density</div>
+                                <div style="font-size: 18px; font-weight: bold; color: #805ad5;" id="coverage-density">0.00/m³</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <strong style="color: #2d3748;">Base Station Performance:</strong>
+                                <button id="toggle-bs-stats-btn" class="btn btn-sm" style="padding: 4px 12px; font-size: 12px; background: #805ad5; color: white; border: none; border-radius: 4px;">Show Details</button>
+                            </div>
+                            <div id="bs-stats-container" style="max-height: 200px; overflow-y: auto; display: none;">
+                                <div id="bs-coverage-stats" class="stats-list" style="margin-top: 10px;"></div>
+                            </div>
+                            <div id="bs-performance-bars" style="margin-top: 15px;"></div>
+                        </div>
+                        <div id="multi-performance-info" style="font-size: 12px; color: #666; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delay Analysis Tool -->
+            <div id="delay-tool" class="tool-section" style="display: none;">
+                <div class="point-info">
+                    <strong>Transmitter Location:</strong>
+                    <div id="delay-tx-coords">Not selected</div>
+                </div>
+                <div class="button-group">
+                    <button id="select-delay-tx-btn" class="btn btn-primary">Select Transmitter</button>
+                    <button id="reset-delay-btn" class="btn btn-secondary">Reset</button>
+                </div>
+                <div class="control-group">
+                    <label><strong>Frequency (MHz):</strong></label>
+                    <input type="range" id="delay-frequency" min="100" max="6000" value="2400">
+                    <div id="delay-frequency-value" class="value-display">2400 MHz</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Transmitter Height (m):</strong></label>
+                    <input type="number" id="delay-tx-height" min="1.5" max="100" value="25" step="0.1">
+                    <div id="delay-tx-height-value" class="value-display">25 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Analysis Radius (m):</strong></label>
+                    <input type="range" id="delay-radius" min="10" max="500" value="100" step="10">
+                    <div id="delay-radius-value" class="value-display">100 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Grid Resolution (m):</strong></label>
+                    <input type="range" id="delay-resolution" min="1" max="20" value="5" step="1">
+                    <div id="delay-resolution-value" class="value-display">5 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Environment Type:</strong></label>
+                    <select id="delay-environment">
+                        <option value="uma-los">UMa LOS</option>
+                        <option value="uma-nlos">UMa NLOS</option>
+                        <option value="umi-los">UMi LOS</option>
+                        <option value="umi-nlos">UMi NLOS</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label><strong>Delay Scaling (r<sub>τ</sub>):</strong></label>
+                    <input type="range" id="delay-scaling" min="1" max="5" value="2.5" step="0.1">
+                    <div id="delay-scaling-value" class="value-display">2.5</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Number of Clusters (N):</strong></label>
+                    <input type="range" id="cluster-count" min="1" max="20" value="12" step="1">
+                    <div id="cluster-count-value" class="value-display">12 clusters</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Ray Tracing Mode:</strong></label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="delay-ray-tracing" style="width: auto;">
+                        <label for="delay-ray-tracing" style="margin: 0;">Enable Ray Tracing</label>
+                    </div>
+                </div>
+                <button id="analyze-delay-btn" class="btn btn-calculate">Analyze Delay Spread</button>
+                <button id="show-delay-map-btn" class="btn btn-info" style="width: 100%; margin-top: 10px;">Show Delay Analysis Map</button>
+                <div id="delay-result" class="result">
+                    <strong>Delay Analysis Result:</strong>
+                    <div id="avg-delay-spread" style="font-size: 20px; font-weight: bold; color: #17a2b8; margin: 8px 0;">0.00 ns</div>
+                    <div id="delay-points-analyzed">Points Analyzed: 0</div>
+                    <div id="delay-compute-time">Computation Time: 0.00 seconds</div>
+                    <div id="max-delay-spread">Maximum Delay Spread: 0.00 ns</div>
+                    <div id="min-delay-spread">Minimum Delay Spread: 0.00 ns</div>
+                    <div id="delay-profile-info">Environment: UMa NLOS</div>
+                    <div id="delay-performance-info" style="font-size: 12px; color: #666; margin-top: 5px;"></div>
+                </div>
+            </div>
+
+            <!-- Throughput Analysis Tool -->
+            <div id="throughput-tool" class="tool-section" style="display: none;">
+                <div class="point-info">
+                    <strong>Transmitter Location:</strong>
+                    <div id="throughput-tx-coords">Not selected</div>
+                </div>
+                <div class="button-group">
+                    <button id="select-throughput-tx-btn" class="btn btn-primary">Select Transmitter</button>
+                    <button id="reset-throughput-btn" class="btn btn-secondary">Reset</button>
+                </div>
+                <div class="control-group">
+                    <label><strong>Frequency (MHz):</strong></label>
+                    <input type="range" id="throughput-frequency" min="100" max="6000" value="2400">
+                    <div id="throughput-frequency-value" class="value-display">2400 MHz</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Transmitter Height (m):</strong></label>
+                    <input type="number" id="throughput-tx-height" min="1.5" max="100" value="25" step="0.1">
+                    <div id="throughput-tx-height-value" class="value-display">25 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Analysis Radius (m):</strong></label>
+                    <input type="range" id="throughput-radius" min="10" max="500" value="100" step="10">
+                    <div id="throughput-radius-value" class="value-display">100 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Grid Resolution (m):</strong></label>
+                    <input type="range" id="throughput-resolution" min="1" max="20" value="5" step="1">
+                    <div id="throughput-resolution-value" class="value-display">5 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Environment Type:</strong></label>
+                    <select id="throughput-environment">
+                        <option value="uma-los">UMa LOS</option>
+                        <option value="uma-nlos">UMa NLOS</option>
+                        <option value="umi-los">UMi LOS</option>
+                        <option value="umi-nlos">UMi NLOS</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label><strong>Bandwidth (MHz):</strong></label>
+                    <select id="throughput-bandwidth">
+                        <option value="1.4">1.4 MHz (6 PRBs)</option>
+                        <option value="3">3 MHz (15 PRBs)</option>
+                        <option value="5">5 MHz (25 PRBs)</option>
+                        <option value="10" selected>10 MHz (50 PRBs)</option>
+                        <option value="15">15 MHz (75 PRBs)</option>
+                        <option value="20">20 MHz (100 PRBs)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label><strong>Cell Load Factor:</strong></label>
+                    <input type="range" id="cell-load" min="0.1" max="1.0" value="0.7" step="0.1">
+                    <div id="cell-load-value" class="value-display">0.7 (70%)</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Noise Floor (dBm):</strong></label>
+                    <input type="range" id="noise-floor" min="-120" max="-80" value="-95" step="1">
+                    <div id="noise-floor-value" class="value-display">-95 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Interference Level (dBm):</strong></label>
+                    <input type="range" id="interference" min="-110" max="-70" value="-90" step="1">
+                    <div id="interference-value" class="value-display">-90 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>SINR Planning:</strong></label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="conservative-sinr" style="width: auto;" checked>
+                        <label for="conservative-sinr" style="margin: 0;">Use Conservative SINR (5th percentile)</label>
+                    </div>
+                </div>
+                <button id="analyze-throughput-btn" class="btn btn-calculate">Analyze Throughput</button>
+                <button id="show-throughput-map-btn" class="btn btn-info" style="width: 100%; margin-top: 10px;">Show Throughput Map</button>
+                <div id="throughput-result" class="result">
+                    <strong>Throughput Analysis Result (3GPP LTE):</strong>
+                    <div id="avg-throughput" style="font-size: 20px; font-weight: bold; color: #17a2b8; margin: 8px 0;">0.00 Mbps</div>
+                    <div id="throughput-points-analyzed">Points Analyzed: 0</div>
+                    <div id="throughput-compute-time">Computation Time: 0.00 seconds</div>
+                    <div id="max-throughput">Maximum Throughput: 0.00 Mbps</div>
+                    <div id="min-throughput">Minimum Throughput: 0.00 Mbps</div>
+                    <div id="throughput-bandwidth-info">Bandwidth: 10 MHz | PRBs: 50</div>
+                    <div id="throughput-performance-info" style="font-size: 12px; color: #666; margin-top: 5px;"></div>
+                </div>
+            </div>
+
+            <!-- Crowd Analysis Tool -->
+            <div id="crowd-tool" class="tool-section" style="display: none;">
+                <div style="background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ed8936;">
+                    <h4 style="margin-top: 0; color: #7b341e;">&#x1F9CD; Crowd Signal Analysis</h4>
+                    <p style="margin: 0; color: #4a5568; font-size: 13px;">Model signal strength across a crowd. Density decreases from center outward. Body shadowing loss applied per ITU-R P.1238.</p>
+                </div>
+                <div class="point-info">
+                    <strong>Base Station Location:</strong>
+                    <div id="crowd-bs-coords">Not selected</div>
+                </div>
+                <div class="button-group">
+                    <button id="select-crowd-bs-btn" class="btn btn-primary">&#x1F4CD; Place Base Station</button>
+                    <button id="reset-crowd-btn" class="btn btn-secondary">Reset</button>
+                </div>
+                <div class="point-info" style="border-left-color: #ed8936; background: #fffaf0;">
+                    <strong>Crowd Center Location:</strong>
+                    <div id="crowd-center-coords">Not selected</div>
+                </div>
+                <div class="button-group">
+                    <button id="select-crowd-center-btn" class="btn btn-secondary">&#x1F3AF; Set Crowd Center</button>
+                </div>
+                <div class="control-group">
+                    <label><strong>Peak Crowd Density (people/m²):</strong></label>
+                    <input type="range" id="crowd-density" min="0.1" max="5" value="1.5" step="0.1">
+                    <div id="crowd-density-value" class="value-display">1.5 p/m²</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Crowd Radius (m):</strong></label>
+                    <input type="number" id="crowd-radius" min="5" max="1000" value="60" step="1" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; font-size:14px;">
+                </div>
+                <div class="control-group">
+                    <label><strong>Grid Resolution (m):</strong></label>
+                    <input type="range" id="crowd-resolution" min="1" max="10" value="3" step="1">
+                    <div id="crowd-resolution-value" class="value-display">3 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Frequency (MHz):</strong></label>
+                    <input type="range" id="crowd-frequency" min="100" max="28000" value="2400" step="100">
+                    <div id="crowd-frequency-value" class="value-display">2400 MHz</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Transmit Power (dBm):</strong></label>
+                    <input type="range" id="crowd-tx-power" min="0" max="50" value="30" step="1">
+                    <div id="crowd-tx-power-value" class="value-display">30 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>BS Height (m):</strong></label>
+                    <input type="number" id="crowd-tx-height" min="1.5" max="100" value="10" step="0.5">
+                    <div id="crowd-tx-height-value" class="value-display">10 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Environment:</strong></label>
+                    <select id="crowd-environment">
+                        <option value="uma-los">UMa LOS</option>
+                        <option value="uma-nlos" selected>UMa NLOS</option>
+                        <option value="umi-los">UMi LOS</option>
+                        <option value="umi-nlos">UMi NLOS</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <div style="background: #f0fff4; padding: 12px; border-radius: 8px; border: 1px solid #9ae6b4;">
+                        <div style="font-size: 12px; color: #22543d; margin-bottom: 4px;"><strong>Auto Model Selection:</strong></div>
+                        <div id="crowd-model-indicator" style="font-size: 13px; color: #276749; font-weight: 600;">&#x1F4E1; Model A (Gaussian) — freq ≤ 3000 MHz</div>
+                        <div style="font-size: 11px; color: #4a5568; margin-top: 4px;">Switches to Model B (Ring-Zones) above 3 GHz</div>
+                    </div>
+                </div>
+                <button id="analyze-crowd-btn" class="btn btn-calculate">&#x1F9CD; Analyze Crowd Coverage</button>
+                <button id="clear-crowd-btn" class="btn btn-secondary" style="width: 100%; margin-top: 8px;">Clear Crowd Visualization</button>
+                <div id="crowd-legend" style="background:#f8f9fa; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-top:14px;">
+                    <div style="font-size:12px; font-weight:700; color:#2d3748; margin-bottom:8px;">&#x1F3A8; Signal Heatmap Legend</div>
+                    <div style="display:flex; flex-direction:column; gap:5px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#440088;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Edge of Range &lt; −120 dBm</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#8800ff;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Very Weak &nbsp; −120 to −100 dBm</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ff2200;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Weak &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; −100 to −90 dBm</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ff8800;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Fair &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; −90 to −80 dBm</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ffee00;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Good &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; −80 to −70 dBm</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#00dd44;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Strong &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &gt; −70 dBm</span>
+                        </div>
+                    </div>
+                    <div style="margin-top:8px; font-size:11px; color:#718096;">&#x1F4A1; Purple = high blockage / edge of range. Green = strong signal near BS.</div>
+                </div>
+                <div id="crowd-result" class="result" style="display:none; background: #fffaf0; border-left: 4px solid #ed8936;">
+                    <strong style="color: #7b341e;">Crowd Analysis Result:</strong>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0;">
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #fbd38d;">
+                            <div style="font-size:11px; color:#718096;">Avg Signal</div>
+                            <div id="crowd-avg-signal" style="font-size:16px; font-weight:bold; color:#dd6b20;">0 dBm</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #fbd38d;">
+                            <div style="font-size:11px; color:#718096;">Est. People</div>
+                            <div id="crowd-total-people" style="font-size:16px; font-weight:bold; color:#dd6b20;">0</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #fbd38d;">
+                            <div style="font-size:11px; color:#718096;">Best Signal</div>
+                            <div id="crowd-max-signal" style="font-size:16px; font-weight:bold; color:#38a169;">0 dBm</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #fbd38d;">
+                            <div style="font-size:11px; color:#718096;">Weakest Signal</div>
+                            <div id="crowd-min-signal" style="font-size:16px; font-weight:bold; color:#e53e3e;">0 dBm</div>
+                        </div>
+                    </div>
+                    <div id="crowd-points-analyzed" style="font-size:13px; color:#666;">Points: 0</div>
+                    <div id="crowd-compute-time" style="font-size:13px; color:#666;">Time: 0s</div>
+                    <div id="crowd-model-used" style="font-size:13px; color:#805ad5; font-weight:600;"></div>
+                </div>
+            </div>
+
+            <!-- BS Placement Optimiser Tool -->
+            <div id="bs-optimiser-tool" class="tool-section" style="display:none;">
+                <div class="point-info" style="background:#f0fdf4; border-left:4px solid #16a34a;">
+                    <strong>🧬 Genetic Algorithm — BS Count Minimiser</strong>
+                    <span style="font-size:12px; color:#555; display:block; margin-top:4px;">
+                        Finds the <em>minimum number</em> of BSs needed to cover the
+                        entire map above your RSSI threshold, using hexagonal geometry seeding.
+                    </span>
+                </div>
+                <div class="control-group" style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:12px; margin-bottom:14px;">
+                    <label style="color:#9a3412;">📶 Minimum Required RSSI (Coverage Threshold)</label>
+                    <input type="range" id="opt-min-rssi" min="-130" max="-60" value="-100" step="5" oninput="optUpdateRSSIDisplay(this.value)">
+                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#888; margin-top:2px;">
+                        <span>−130 dBm (very weak)</span><span>−60 dBm (excellent)</span>
+                    </div>
+                    <div class="value-display" id="opt-rssi-value" style="font-size:15px; font-weight:700; text-align:center; margin-top:6px; background:#fff; border:1px solid #fed7aa; color:#9a3412;">−100 dBm</div>
+                    <div id="opt-rssi-label" style="font-size:11px; color:#888; text-align:center; margin-top:3px;">Good indoor coverage</div>
+                </div>
+                <div class="control-group" style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px; margin-bottom:14px;">
+                    <label style="color:#1e40af; font-weight:700; display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:0;">
+                        <input type="checkbox" id="opt-auto-bs" onchange="optToggleAutoBS(this.checked)" style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer;">
+                        🤖 Auto-find optimal BS count
+                    </label>
+                    <div style="font-size:11px; color:#3b82f6; margin-top:4px; line-height:1.4;">
+                        When checked: ceiling &amp; start count are computed from map area ÷ BS footprint.
+                        Sweep begins at ¼ of ceiling — you can still drag the slider to override the start.
+                    </div>
+                    <div id="opt-auto-info" style="display:none; margin-top:8px; padding:7px 10px; background:#dbeafe; border-radius:6px; font-size:11px; color:#1d4ed8; line-height:1.6;">
+                        <div>📐 Map area ÷ BS footprint (hex) = <strong id="opt-info-ceiling">—</strong> max BSs</div>
+                        <div>🚀 Sweep starts at ¼ ceiling = <strong id="opt-info-start">—</strong> BSs &nbsp;·&nbsp; ends at ceiling &nbsp;·&nbsp; slider overrides start</div>
+                    </div>
+                    <div id="opt-max-bs-group" style="margin-top:10px;">
+                        <label id="opt-max-bs-label" style="font-size:12px; color:#374151;">Max BSs the GA may use (upper bound)</label>
+                        <input type="range" id="opt-max-bs" min="1" max="20" value="6" step="1" oninput="optOnMaxBsSlider(this.value)">
+                        <div style="display:flex; justify-content:space-between; font-size:10px; color:#9ca3af; margin-top:1px;">
+                            <span id="opt-bs-slider-min">1</span>
+                            <span id="opt-bs-slider-mid"></span>
+                            <span id="opt-bs-slider-max">20</span>
+                        </div>
+                        <div class="value-display" id="opt-max-bs-val">6</div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Tx Power (dBm)</label>
+                    <input type="range" id="opt-tx-power" min="20" max="50" value="43" step="1" oninput="document.getElementById('opt-tx-power-val').textContent=this.value+' dBm'">
+                    <div class="value-display" id="opt-tx-power-val">43 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label>Frequency (MHz)</label>
+                    <input type="range" id="opt-frequency" min="700" max="3500" value="1800" step="100" oninput="document.getElementById('opt-frequency-val').textContent=this.value+' MHz'">
+                    <div class="value-display" id="opt-frequency-val">1800 MHz</div>
+                </div>
+                <div class="control-group">
+                    <label>BS Height (m)</label>
+                    <input type="range" id="opt-tx-height" min="5" max="50" value="20" step="1" oninput="document.getElementById('opt-tx-height-val').textContent=this.value+' m'">
+                    <div class="value-display" id="opt-tx-height-val">20 m</div>
+                </div>
+                <div class="control-group">
+                    <label>Coverage Radius per BS (m)</label>
+                    <input type="range" id="opt-radius" min="50" max="500" value="200" step="10" oninput="document.getElementById('opt-radius-val').textContent=this.value+' m'">
+                    <div class="value-display" id="opt-radius-val">200 m</div>
+                </div>
+                <div class="control-group">
+                    <label>Propagation Environment</label>
+                    <select id="opt-environment">
+                        <option value="uma-los">UMa LOS (open outdoor)</option>
+                        <option value="uma-nlos" selected>UMa NLOS (urban)</option>
+                        <option value="umi-los">UMi LOS (street level)</option>
+                        <option value="umi-nlos">UMi NLOS (dense urban)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Min BS-to-BS Spacing (m)</label>
+                    <input type="range" id="opt-min-spacing" min="10" max="200" value="50" step="10" oninput="document.getElementById('opt-min-spacing-val').textContent=this.value+' m'">
+                    <div class="value-display" id="opt-min-spacing-val">50 m</div>
+                </div>
+                <div class="control-group">
+                    <label>Eval Grid Resolution (m) — coarser = faster GA</label>
+                    <input type="range" id="opt-resolution" min="5" max="30" value="10" step="5" oninput="document.getElementById('opt-resolution-val').textContent=this.value+' m'">
+                    <div class="value-display" id="opt-resolution-val">10 m</div>
+                </div>
+                <button class="btn btn-calculate" id="run-optimiser-btn" onclick="runBSOptimiser()" style="margin-top:6px;">🧬 Run GA Optimiser</button>
+                <button class="btn btn-secondary" id="cancel-optimiser-btn" onclick="cancelBSOptimiser()" style="width:100%; margin-top:6px; display:none;">✕ Cancel</button>
+                <div id="opt-progress-box" style="display:none; margin-top:14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+                    <div id="opt-sweep-label" style="display:none; font-size:11px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:5px 8px; margin-bottom:8px; text-align:center;">
+                        🔍 Auto sweep — testing <span id="opt-sweep-cur">?</span> BS &nbsp;/&nbsp; ceiling <span id="opt-sweep-max">?</span> &nbsp;(start: <span id="opt-sweep-start">?</span>)
+                    </div>
+                    <div id="opt-phase-banner" style="display:none; font-size:11px; font-weight:700; color:#b45309; background:#fffbeb; border:1px solid #fcd34d; border-radius:6px; padding:5px 8px; margin-bottom:8px; text-align:center;">
+                        ⚡ Coverage gap &gt; threshold — injecting <span id="opt-inject-bs">?</span> extra BSs &nbsp;·&nbsp; Phase <span id="opt-phase-num">1</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; font-weight:600; color:#2d3748; margin-bottom:4px;">
+                        <span>Generation <span id="opt-gen-cur">0</span> / <span id="opt-gen-max">80</span></span>
+                        <span style="font-size:11px; color:#6b7280;">Phase <span id="opt-phase-cur">1</span></span>
+                    </div>
+                    <div style="background:#e2e8f0; border-radius:6px; height:10px; overflow:hidden; margin-bottom:10px;">
+                        <div id="opt-gen-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#4ade80); border-radius:6px; transition:width 0.3s ease;"></div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; font-size:11px; margin-bottom:10px;">
+                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #e2e8f0; text-align:center;">
+                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Coverage</div>
+                            <div id="opt-prog-cov" style="font-weight:700; color:#16a34a; font-size:13px;">—</div>
+                        </div>
+                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #e2e8f0; text-align:center;">
+                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Gap</div>
+                            <div id="opt-prog-gap" style="font-weight:700; color:#ef4444; font-size:13px;">—</div>
+                        </div>
+                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #e2e8f0; text-align:center;">
+                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Active BSs</div>
+                            <div id="opt-prog-bs" style="font-weight:700; color:#2563eb; font-size:13px;">—</div>
+                        </div>
+                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #e2e8f0; text-align:center;">
+                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Fitness</div>
+                            <div id="opt-prog-fit" style="font-weight:700; color:#7c3aed; font-size:13px;">—</div>
+                        </div>
+                    </div>
+                    <div style="font-size:10px; color:#6b7280; margin-bottom:3px; font-weight:600;">🗺️ Live BS layout — updates every generation</div>
+                    <canvas id="opt-live-map" height="130" style="width:100%; border-radius:6px; background:#1e293b; border:1px solid #334155; display:block;"></canvas>
+                </div>
+                <div id="opt-result-box" style="display:none; margin-top:14px; background:#f0fdf4; border-left:4px solid #16a34a; border-radius:8px; padding:15px;">
+                    <strong style="color:#166534; display:block; margin-bottom:10px; font-size:14px;">✅ Optimisation Complete</strong>
+                    <div id="opt-auto-summary" style="display:none; margin-bottom:10px; padding:8px 10px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; font-size:11px; color:#1d4ed8; line-height:1.5;"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+                        <div style="background:white; padding:10px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
+                            <div style="font-size:10px; color:#666;">Coverage</div>
+                            <div id="opt-res-cov" style="font-size:1.3em; font-weight:700; color:#16a34a;">—</div>
+                        </div>
+                        <div style="background:white; padding:10px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
+                            <div style="font-size:10px; color:#666;">BSs Used</div>
+                            <div id="opt-res-bs" style="font-size:1.3em; font-weight:700; color:#2563eb;">—</div>
+                        </div>
+                        <div style="background:white; padding:10px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
+                            <div style="font-size:10px; color:#666;">Avg Signal</div>
+                            <div id="opt-res-sig" style="font-size:1.3em; font-weight:700; color:#7c3aed;">—</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:11px; color:#555; margin-bottom:4px; font-weight:600;">📈 GA Convergence — Coverage % per Generation</div>
+                        <canvas id="opt-chart" height="90" style="width:100%; border-radius:6px; background:white; border:1px solid #e2e8f0;"></canvas>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:11px; color:#555; margin-bottom:4px; font-weight:600;">🔷 Optimised BS Layout (top view)</div>
+                        <canvas id="opt-hex-canvas" height="140" style="width:100%; border-radius:6px; background:#1e293b; border:1px solid #334155;"></canvas>
+                    </div>
+                    <div style="font-size:11px; color:#555; margin-bottom:6px; font-weight:600;">📡 Per-BS Statistics</div>
+                    <div id="opt-bs-list" style="max-height:200px; overflow-y:auto;"></div>
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="btn btn-primary" onclick="applyOptimisedBSPositions()" style="flex:1; font-size:12px;">📡 Apply to Multi-Coverage</button>
+                        <button class="btn btn-secondary" onclick="exportOptimiserResults()" style="flex:1; font-size:12px;">⬇ Export JSON</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contour Chain BS Placer Tool -->
+            <div id="contour-chain-tool" class="tool-section" style="display:none;">
+                <div class="point-info" style="background:#f0f9ff; border-left:4px solid #0284c7;">
+                    <strong>🔗 Contour Chain BS Placer</strong>
+                    <span style="font-size:12px; color:#555; display:block; margin-top:4px;">
+                        Places BSs by chaining signal contours — anchors at bottom-right, sweeps left then up, fine-tuned with gradient descent. No randomness. Every BS has a reason.
+                    </span>
+                </div>
+                <div class="control-group" style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:12px; margin-bottom:14px;">
+                    <label style="color:#9a3412;">📶 Minimum Required RSSI</label>
+                    <input type="range" id="cc-min-rssi" min="-130" max="-60" value="-100" step="5" oninput="ccUpdateRSSI(this.value)">
+                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#888; margin-top:2px;">
+                        <span>−130 dBm (very weak)</span><span>−60 dBm (excellent)</span>
+                    </div>
+                    <div class="value-display" id="cc-rssi-val" style="font-size:15px; font-weight:700; text-align:center; margin-top:6px; background:#fff; border:1px solid #fed7aa; color:#9a3412;">−100 dBm</div>
+                    <div id="cc-rssi-label" style="font-size:11px; color:#888; text-align:center; margin-top:3px;">🟠 Moderate — basic data, some drops</div>
+                </div>
+                <div class="control-group">
+                    <label>🎯 Target Coverage (%)</label>
+                    <input type="range" id="cc-target" min="50" max="99" value="90" step="1" oninput="document.getElementById('cc-target-val').textContent=this.value+'%'">
+                    <div class="value-display" id="cc-target-val">90%</div>
+                </div>
+                <div class="control-group">
+                    <label>Tx Power (dBm)</label>
+                    <input type="range" id="cc-tx-power" min="20" max="50" value="43" step="1" oninput="document.getElementById('cc-tx-power-val').textContent=this.value+' dBm'">
+                    <div class="value-display" id="cc-tx-power-val">43 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label>Frequency (MHz)</label>
+                    <input type="range" id="cc-frequency" min="700" max="3500" value="1800" step="100" oninput="document.getElementById('cc-frequency-val').textContent=this.value+' MHz'">
+                    <div class="value-display" id="cc-frequency-val">1800 MHz</div>
+                </div>
+                <div class="control-group">
+                    <label>BS Height (m)</label>
+                    <input type="range" id="cc-tx-height" min="5" max="50" value="20" step="1" oninput="document.getElementById('cc-tx-height-val').textContent=this.value+' m'">
+                    <div class="value-display" id="cc-tx-height-val">20 m</div>
+                </div>
+                <div class="control-group">
+                    <label>Coverage Radius per BS (m)</label>
+                    <input type="range" id="cc-radius" min="30" max="500" value="150" step="10" oninput="document.getElementById('cc-radius-val').textContent=this.value+' m'">
+                    <div class="value-display" id="cc-radius-val">150 m</div>
+                </div>
+                <div class="control-group">
+                    <label>Propagation Environment</label>
+                    <select id="cc-environment">
+                        <option value="uma-los">UMa LOS (open outdoor)</option>
+                        <option value="uma-nlos" selected>UMa NLOS (urban)</option>
+                        <option value="umi-los">UMi LOS (street level)</option>
+                        <option value="umi-nlos">UMi NLOS (dense urban)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Eval Grid Resolution (m) — coarser = faster</label>
+                    <input type="range" id="cc-resolution" min="5" max="30" value="10" step="5" oninput="document.getElementById('cc-resolution-val').textContent=this.value+' m'">
+                    <div class="value-display" id="cc-resolution-val">10 m</div>
+                </div>
+                <button class="btn btn-calculate" id="cc-run-btn" onclick="runContourChain()" style="margin-top:6px; background:linear-gradient(135deg,#0284c7,#0ea5e9);">🔗 Run Contour Chain</button>
+                <button class="btn btn-secondary" id="cc-cancel-btn" onclick="cancelContourChain()" style="width:100%; margin-top:6px; display:none;">✕ Cancel</button>
+                <div id="cc-progress-box" style="display:none; margin-top:14px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:14px;">
+
+                    <!-- ── Working indicator ── -->
+                    <div id="cc-working" style="display:flex; align-items:center; gap:10px; background:white; border:1px solid #bae6fd; border-radius:8px; padding:9px 12px; margin-bottom:12px;">
+                        <div style="flex-shrink:0; width:20px; height:20px; border:3px solid #e0f2fe; border-top:3px solid #0284c7; border-radius:50%; animation:cc-spin 0.8s linear infinite;"></div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-size:11px; font-weight:700; color:#0369a1;">Contour chain running…</div>
+                            <div id="cc-working-sub" style="font-size:10px; color:#0284c7; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Initialising coverage matrix</div>
+                        </div>
+                        <div id="cc-working-pulse" style="font-size:16px; animation:cc-pulse 1.2s ease-in-out infinite;">📡</div>
+                    </div>
+                    <style>
+                        @keyframes cc-spin  { to { transform: rotate(360deg); } }
+                        @keyframes cc-pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+                        #cc-prog-bar.cc-running {
+                            background: repeating-linear-gradient(
+                                90deg, #0284c7 0px, #38bdf8 20px, #0284c7 40px
+                            ) !important;
+                            background-size: 40px 100% !important;
+                            animation: cc-stripe 0.6s linear infinite;
+                        }
+                        @keyframes cc-stripe {
+                            from { background-position: 0 0; }
+                            to   { background-position: 40px 0; }
+                        }
+                    </style>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; font-size:11px; margin-bottom:10px;">
+                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #bae6fd; text-align:center;">
+                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Coverage</div>
+                            <div id="cc-prog-cov" style="font-weight:700; color:#16a34a; font-size:13px;">—</div>
+                        </div>
+                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #bae6fd; text-align:center;">
+                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Gap</div>
+                            <div id="cc-prog-gap" style="font-weight:700; color:#ef4444; font-size:13px;">—</div>
+                        </div>
+                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #bae6fd; text-align:center;">
+                            <div style="color:#666; margin-bottom:2px; font-size:10px;">BSs Placed</div>
+                            <div id="cc-prog-bs" style="font-weight:700; color:#0284c7; font-size:13px;">—</div>
+                        </div>
+                    </div>
+                    <div style="font-size:11px; color:#0369a1; font-weight:600; margin-bottom:6px;" id="cc-step-label">Placing BS #1 — anchor...</div>
+                    <div style="background:#e0f2fe; border-radius:6px; height:10px; overflow:hidden; margin-bottom:10px;">
+                        <div id="cc-prog-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#0284c7,#38bdf8); border-radius:6px; transition:width 0.4s ease;"></div>
+                    </div>
+                    <div style="font-size:10px; color:#6b7280; margin-bottom:3px; font-weight:600;">🗺️ Live contour map — updates each BS placement</div>
+                    <canvas id="cc-live-map" height="200" style="width:100%; border-radius:8px; background:#0f172a; border:1px solid #334155; display:block;"></canvas>
+                    <div style="display:flex; gap:12px; margin-top:6px; font-size:10px; color:#6b7280; flex-wrap:wrap;">
+                        <span>🟢 Covered</span>
+                        <span>🔴 Active BS</span>
+                        <span>🔵 Fixed BSs</span>
+                        <span>🟡 Contour ring</span>
+                        <span>🩹 Gap heal</span>
+                    </div>
+                </div>
+                <div id="cc-result-box" style="display:none; margin-top:14px; background:#f0f9ff; border-left:4px solid #0284c7; border-radius:8px; padding:15px;">
+                    <strong style="color:#0c4a6e; display:block; margin-bottom:10px; font-size:14px;">✅ Contour Chain Complete</strong>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+                        <div style="background:white; padding:10px; border-radius:8px; text-align:center; border:1px solid #bae6fd;">
+                            <div style="font-size:10px; color:#666;">Final Coverage</div>
+                            <div id="cc-res-cov" style="font-size:1.4em; font-weight:700; color:#16a34a;">—</div>
+                        </div>
+                        <div style="background:white; padding:10px; border-radius:8px; text-align:center; border:1px solid #bae6fd;">
+                            <div style="font-size:10px; color:#666;">BSs Placed</div>
+                            <div id="cc-res-bs" style="font-size:1.4em; font-weight:700; color:#0284c7;">—</div>
+                        </div>
+                    </div>
+                    <div style="font-size:11px; color:#555; margin-bottom:4px; font-weight:600;">🗺️ Final BS Layout</div>
+                    <canvas id="cc-final-map" height="220" style="width:100%; border-radius:8px; background:#0f172a; border:1px solid #334155; margin-bottom:12px;"></canvas>
+                    <div style="font-size:11px; color:#555; margin-bottom:6px; font-weight:600;">📡 Per-BS Info</div>
+                    <div id="cc-bs-list" style="max-height:180px; overflow-y:auto;"></div>
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="btn btn-primary" onclick="ccApplyToMultiCoverage()" style="flex:1; font-size:12px; background:linear-gradient(135deg,#0284c7,#0ea5e9);">📡 Apply to Multi-Coverage</button>
+                        <button class="btn btn-secondary" onclick="ccExport()" style="flex:1; font-size:12px;">⬇ Export JSON</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SINR Analysis Tool -->
+            <div id="sinr-tool" class="tool-section" style="display: none;">
+                <div style="background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #2b6cb0;">
+                    <h4 style="margin-top: 0; color: #1a365d;">📶 SINR Analysis</h4>
+                    <p style="margin: 0; color: #4a5568; font-size: 13px;">Compute Signal-to-Interference-plus-Noise Ratio across a 3D grid around a transmitter using 3GPP path-loss models.</p>
+                </div>
+                <div class="point-info" style="border-left-color: #2b6cb0; background: #ebf8ff;">
+                    <strong>Transmitter Location:</strong>
+                    <div id="sinr-tx-coords">Not selected</div>
+                </div>
+                <div class="button-group">
+                    <button id="select-sinr-tx-btn" class="btn btn-primary">Select Transmitter</button>
+                    <button id="reset-sinr-btn" class="btn btn-secondary">Reset</button>
+                </div>
+                <div class="control-group">
+                    <label><strong>TX Power (dBm):</strong></label>
+                    <input type="range" id="sinr-tx-power" min="0" max="50" value="20" step="1">
+                    <div id="sinr-tx-power-value" class="value-display">20 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>TX Height (m):</strong></label>
+                    <input type="range" id="sinr-tx-height" min="1" max="100" value="25" step="1">
+                    <div id="sinr-tx-height-value" class="value-display">25 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Frequency (MHz):</strong></label>
+                    <input type="range" id="sinr-frequency" min="100" max="6000" value="2400" step="100">
+                    <div id="sinr-frequency-value" class="value-display">2400 MHz</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Noise Floor (dBm):</strong></label>
+                    <input type="range" id="sinr-noise-floor" min="-120" max="-80" value="-95" step="1">
+                    <div id="sinr-noise-floor-value" class="value-display">-95 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Interference Level (dBm):</strong></label>
+                    <input type="range" id="sinr-interference" min="-110" max="-70" value="-90" step="1">
+                    <div id="sinr-interference-value" class="value-display">-90 dBm</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Analysis Radius (m):</strong></label>
+                    <input type="range" id="sinr-radius" min="10" max="500" value="100" step="10">
+                    <div id="sinr-radius-value" class="value-display">100 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Grid Resolution (m):</strong></label>
+                    <input type="range" id="sinr-resolution" min="1" max="20" value="5" step="1">
+                    <div id="sinr-resolution-value" class="value-display">5 m</div>
+                </div>
+                <div class="control-group">
+                    <label><strong>Interfering Cell Tiers:</strong></label>
+                    <select id="sinr-cell-tiers">
+                        <option value="1">1 tier (6 cells)</option>
+                        <option value="3" selected>3 tiers (18 cells)</option>
+                        <option value="6">6 tiers (42 cells)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label><strong>Environment:</strong></label>
+                    <select id="sinr-environment">
+                        <option value="uma-los">UMa LOS</option>
+                        <option value="uma-nlos">UMa NLOS</option>
+                        <option value="umi-los">UMi LOS</option>
+                        <option value="umi-nlos">UMi NLOS</option>
+                    </select>
+                </div>
+                <button id="analyze-sinr-btn" class="btn btn-calculate">📶 Analyze SINR</button>
+                <div style="background:#f8f9fa; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-top:14px;">
+                    <div style="font-size:12px; font-weight:700; color:#2d3748; margin-bottom:8px;">🎨 SINR Colour Legend</div>
+                    <div style="display:flex; flex-direction:column; gap:5px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#00ff00;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Excellent ≥ 20 dB</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#80ff00;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Good 10 – 20 dB</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ffff00;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Fair 0 – 10 dB</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ff8000;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Poor −10 – 0 dB</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ff0000;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Very Poor &lt; −10 dB</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="sinr-result" class="result" style="display:none; background:#ebf8ff; border-left:4px solid #2b6cb0;">
+                    <strong style="color:#1a365d;">📶 SINR Analysis Result:</strong>
+                    <div id="sinr-stats" style="margin: 10px 0; font-size:13px; color:#2d3748;"></div>
+                    <div id="avg-sinr" style="font-size:14px; line-height:1.8;"></div>
+                </div>
+            </div>
+
+            <!-- Fairness Analysis Tool -->
+            <div id="fairness-tool" class="tool-section" style="display: none;">
+                <div style="background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #276749;">
+                    <h4 style="margin-top: 0; color: #1c4532;">⚖️ Fairness Analysis</h4>
+                    <p style="margin: 0; color: #4a5568; font-size: 13px;">Evaluate network fairness using Jain's Fairness Index, throughput distribution, and congestion metrics. Requires SINR analysis to be run first.</p>
+                </div>
+                <div style="background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:12px; margin-bottom:14px; font-size:12px; color:#92400e;">
+                    ⚠️ Run <strong>SINR Analysis</strong> first — this tool uses the SINR data to model per-user throughput.
+                </div>
+                <div class="control-group">
+                    <label><strong>Total Cell Bandwidth (MHz):</strong></label>
+                    <input type="range" id="fairness-bandwidth" min="10" max="200" value="100" step="10">
+                    <div id="fairness-bandwidth-value" class="value-display">100 MHz</div>
+                </div>
+                <button id="analyze-fairness-btn" class="btn btn-calculate" disabled>⚖️ Analyze Fairness</button>
+                <div style="background:#f8f9fa; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-top:14px;">
+                    <div style="font-size:12px; font-weight:700; color:#2d3748; margin-bottom:8px;">🎨 Throughput Colour Legend</div>
+                    <div style="display:flex; flex-direction:column; gap:5px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#00ff00;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">High ≥ 8 Mbps</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ffff00;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Medium 4 – 8 Mbps</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ff8000;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Low &lt; 4 Mbps</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:18px;height:18px;border-radius:4px;background:#ff0000;flex-shrink:0;"></div>
+                            <span style="font-size:12px; color:#4a5568;">Congested</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="fairness-result" class="result" style="display:none; background:#f0fff4; border-left:4px solid #276749;">
+                    <strong style="color:#1c4532;">⚖️ Fairness Analysis Result:</strong>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0;">
+                        <div style="text-align:center; background:white; padding:10px; border-radius:8px; border:1px solid #9ae6b4;">
+                            <div style="font-size:11px; color:#718096;">Jain's Fairness Index</div>
+                            <div id="fairness-index" style="font-size:1.4em; font-weight:700;">—</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:10px; border-radius:8px; border:1px solid #9ae6b4;">
+                            <div style="font-size:11px; color:#718096;">Efficiency Score</div>
+                            <div id="fairness-efficiency" style="font-size:1.4em; font-weight:700;">—</div>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #c6f6d5;">
+                            <div style="font-size:10px; color:#718096;">Avg Throughput</div>
+                            <div id="fairness-avg-throughput" style="font-size:1.1em; font-weight:700; color:#276749;">— Mbps</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #c6f6d5;">
+                            <div style="font-size:10px; color:#718096;">Min Throughput</div>
+                            <div id="fairness-min-throughput" style="font-size:1.1em; font-weight:700; color:#e53e3e;">— Mbps</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #c6f6d5;">
+                            <div style="font-size:10px; color:#718096;">P5 Throughput</div>
+                            <div id="fairness-p5-throughput" style="font-size:1.1em; font-weight:700; color:#d97706;">— Mbps</div>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #fed7d7;">
+                            <div style="font-size:10px; color:#718096;">Congested Zones</div>
+                            <div id="fairness-congested" style="font-size:1.2em; font-weight:700; color:#e53e3e;">—</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:8px; border-radius:6px; border:1px solid #fed7d7;">
+                            <div style="font-size:10px; color:#718096;">Critical Zones</div>
+                            <div id="fairness-critical" style="font-size:1.2em; font-weight:700; color:#e53e3e;">—</div>
+                        </div>
+                    </div>
+                    <div style="font-size:11px; font-weight:700; color:#2d3748; margin-bottom:6px;">📊 Load Distribution</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+                        <div style="text-align:center; background:white; padding:7px; border-radius:6px; border:1px solid #bee3f8;">
+                            <div style="font-size:10px; color:#718096;">Underloaded</div>
+                            <div id="fairness-underloaded" style="font-size:1.1em; font-weight:700; color:#3182ce;">—</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:7px; border-radius:6px; border:1px solid #bee3f8;">
+                            <div style="font-size:10px; color:#718096;">Balanced</div>
+                            <div id="fairness-balanced" style="font-size:1.1em; font-weight:700; color:#276749;">—</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:7px; border-radius:6px; border:1px solid #bee3f8;">
+                            <div style="font-size:10px; color:#718096;">Overloaded</div>
+                            <div id="fairness-overloaded" style="font-size:1.1em; font-weight:700; color:#e53e3e;">—</div>
+                        </div>
+                    </div>
+                    <div style="font-size:11px; font-weight:700; color:#2d3748; margin-bottom:6px;">😊 User Satisfaction</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+                        <div style="text-align:center; background:white; padding:7px; border-radius:6px; border:1px solid #c6f6d5;">
+                            <div style="font-size:10px; color:#718096;">Good</div>
+                            <div id="fairness-good" style="font-size:1.1em; font-weight:700; color:#276749;">—</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:7px; border-radius:6px; border:1px solid #fefcbf;">
+                            <div style="font-size:10px; color:#718096;">Moderate</div>
+                            <div id="fairness-moderate" style="font-size:1.1em; font-weight:700; color:#d97706;">—</div>
+                        </div>
+                        <div style="text-align:center; background:white; padding:7px; border-radius:6px; border:1px solid #fed7d7;">
+                            <div style="font-size:10px; color:#718096;">Poor</div>
+                            <div id="fairness-poor" style="font-size:1.1em; font-weight:700; color:#e53e3e;">—</div>
+                        </div>
+                    </div>
+                    <div style="background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:10px; font-size:12px; color:#92400e;">
+                        💡 <span id="fairness-insight">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== INTERACTIVE MODE ==================== -->
+            <div id="interactive-tool" class="tool-section" style="display: none;">
+                <div class="point-info" style="background:#f0f4ff; border-left:4px solid #1e40af;">
+                    <strong>🎮 Interactive Mode</strong>
+                    <span style="font-size:12px; color:#555; display:block; margin-top:4px;">
+                        Add/delete/drag base stations, custom buildings and crowds.<br>
+                        Click <strong>Analyse RSSI</strong> to see live signal coverage.
+                    </span>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+                    <button id="int-add-bs" class="btn btn-primary" style="flex:1;">➕ Add BS</button>
+                    <button id="int-add-building" class="btn btn-primary" style="flex:1;">🏢 Add Building</button>
+                    <button id="int-add-crowd" class="btn btn-primary" style="flex:1;">👥 Add Crowd</button>
+                    <button id="int-import-config" class="btn btn-info" style="flex:1;">📂 Import</button>
+                    <button id="int-export-config" class="btn btn-info" style="flex:1;">💾 Export</button>
+                </div>
+
+                <!-- Add / Edit panels (hidden by default) -->
+                <div id="int-add-bs-panel" class="int-form-panel" style="display:none; background:#f8fafc; border-radius:8px; margin-bottom:12px; padding:12px;">
+                    <h4 style="margin-top:0;">➕ Add Base Station</h4>
+                    <div class="control-group"><label>Name:</label><input type="text" id="int-bs-name" value="BS-1"></div>
+                    <div class="control-group"><label>Tx Power (dBm):</label><input type="range" id="int-bs-txpower" min="20" max="50" step="1" value="43"><span id="int-bs-txpower-val">43</span> dBm</div>
+                    <div class="control-group"><label>Frequency (MHz):</label><input type="range" id="int-bs-freq" min="700" max="3500" step="100" value="1800"><span id="int-bs-freq-val">1800</span> MHz</div>
+                    <div class="control-group"><label>Height (m):</label><input type="range" id="int-bs-height" min="5" max="50" step="1" value="20"><span id="int-bs-height-val">20</span> m</div>
+                    <div class="control-group"><label>Radius (m):</label><input type="range" id="int-bs-radius" min="50" max="500" step="10" value="150"><span id="int-bs-radius-val">150</span> m</div>
+                    <div class="control-group"><label>Environment:</label><select id="int-bs-env"><option value="uma-los">UMa LOS</option><option value="uma-nlos" selected>UMa NLOS</option><option value="umi-los">UMi LOS</option><option value="umi-nlos">UMi NLOS</option></select></div>
+                    <div class="control-group"><label>Antenna Azimuth (°):</label><input type="range" id="int-bs-azimuth" min="0" max="360" step="1" value="0"><span id="int-bs-azimuth-val">0</span>°</div>
+                    <div class="control-group"><label>Beamwidth (°):</label><select id="int-bs-beamwidth"><option value="360">Omni (360°)</option><option value="120" selected>120°</option><option value="90">90°</option></select></div>
+                    <div class="control-group"><label>Gain (dBi):</label><input type="range" id="int-bs-gain" min="0" max="30" step="1" value="8"><span id="int-bs-gain-val">8</span> dBi</div>
+                    <div style="display:flex; gap:8px; margin-top:8px;"><button id="int-bs-confirm" class="btn btn-primary">Confirm & Place on Map</button><button id="int-bs-cancel" class="btn btn-secondary">Cancel</button></div>
+                </div>
+
+                <div id="int-add-building-panel" class="int-form-panel" style="display:none; background:#f8fafc; border-radius:8px; margin-bottom:12px; padding:12px;">
+                    <h4 style="margin-top:0;">🏢 Add Building</h4>
+                    <div class="control-group"><label>Width (m):</label><input type="number" id="int-bld-width" value="15" step="1"></div>
+                    <div class="control-group"><label>Depth (m):</label><input type="number" id="int-bld-depth" value="15" step="1"></div>
+                    <div class="control-group"><label>Height (m):</label><input type="number" id="int-bld-height" value="10" step="1"></div>
+                    <div class="control-group"><label>Material:</label><select id="int-bld-material"><option value="concrete">Concrete (15 dB/m)</option><option value="brick">Brick (12 dB/m)</option><option value="glass">Glass (2.5 dB/m)</option><option value="wood">Wood (6 dB/m)</option><option value="metal">Metal (40 dB/m)</option></select></div>
+                    <div style="display:flex; gap:8px;"><button id="int-bld-confirm" class="btn btn-primary">Confirm & Place on Map</button><button id="int-bld-cancel" class="btn btn-secondary">Cancel</button></div>
+                </div>
+
+                <div id="int-add-crowd-panel" class="int-form-panel" style="display:none; background:#f8fafc; border-radius:8px; margin-bottom:12px; padding:12px;">
+                    <h4 style="margin-top:0;">👥 Add Crowd</h4>
+                    <div class="control-group"><label>Radius (m):</label><input type="range" id="int-crowd-radius" min="10" max="100" step="5" value="40"><span id="int-crowd-radius-val">40</span> m</div>
+                    <div class="control-group"><label>Peak Density (p/m²):</label><input type="range" id="int-crowd-density" min="0.2" max="5" step="0.1" value="1.5"><span id="int-crowd-density-val">1.5</span> p/m²</div>
+                    <div style="display:flex; gap:8px;"><button id="int-crowd-confirm" class="btn btn-primary">Confirm & Set Center</button><button id="int-crowd-cancel" class="btn btn-secondary">Cancel</button></div>
+                </div>
+
+                <div id="int-edit-panel" class="int-form-panel" style="display:none; background:#fff7ed; border-radius:8px; margin-bottom:12px; padding:12px; border-left:3px solid #f97316;">
+                    <h4 style="margin-top:0;">✏️ Edit Object</h4>
+                    <div id="int-edit-content"></div>
+                    <div style="display:flex; gap:8px; margin-top:12px;"><button id="int-edit-delete" class="btn btn-secondary" style="background:#ef4444;">Delete</button><button id="int-edit-close" class="btn btn-primary">Close</button></div>
+                </div>
+
+                <div style="background:#f8fafc; border-radius:8px; padding:8px; margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:600; margin-bottom:6px;">📋 All objects on map</div>
+                    <div id="int-object-list" style="max-height:140px; overflow-y:auto; font-size:12px;">
+                        (no objects)
+                    </div>
+                </div>
+
+                <div class="control-group" style="background:#eff6ff; border-radius:8px; padding:10px;">
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="int-full-map-analysis" checked>
+                        <span>Analyse entire map (auto grid) – otherwise use BS radii ranges</span>
+                    </label>
+                    <div style="margin-top:8px;">
+                        <label><strong>📡 RSSI threshold (dBm):</strong></label>
+                        <input type="range" id="int-min-rssi" min="-130" max="-60" value="-100" step="5" oninput="document.getElementById('int-rssi-val').textContent=this.value+' dBm'">
+                        <div id="int-rssi-val" class="value-display" style="margin-top:4px;">-100 dBm</div>
+                    </div>
+                </div>
+
+                <!-- Optimiser button added here -->
+                <button id="int-optimise-bs" class="btn btn-info" style="width:100%; margin:10px 0;">🧬 Optimise BS Placement (Contour Chain)</button>
+
+                <button id="int-analyze" class="btn btn-calculate" style="width:100%; margin:10px 0;">📊 Analyse RSSI Coverage</button>
+                <button id="int-clear-all" class="btn btn-secondary" style="width:100%;">🗑️ Clear all objects & analysis</button>
+                <div id="int-status" style="background:#f1f5f9; padding:6px; border-radius:6px; font-size:11px; margin-top:8px; color:#475569;">
+                    ℹ️ Click a button above to start placing objects.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contour Chain Optimiser Modal (hidden by default) -->
+    <div id="contour-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:500px; max-width:90%; background:white; border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.3); z-index:10001; padding:20px; font-family:system-ui;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:15px;">
+            <h3 style="margin:0;">🧬 Contour Chain BS Optimiser</h3>
+            <button id="modal-close" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        </div>
+        <div style="max-height:70vh; overflow-y:auto;">
+            <div class="control-group">
+                <label>📡 Min RSSI (dBm):</label>
+                <input type="range" id="modal-min-rssi" min="-130" max="-60" value="-100" step="5">
+                <span id="modal-min-rssi-val">-100</span> dBm
+            </div>
+            <div class="control-group">
+                <label>🎯 Target Coverage (%):</label>
+                <input type="range" id="modal-target" min="70" max="99" value="95" step="1">
+                <span id="modal-target-val">95</span>%
+            </div>
+            <div class="control-group">
+                <label>Tx Power (dBm):</label>
+                <input type="range" id="modal-txpower" min="20" max="50" value="43" step="1">
+                <span id="modal-txpower-val">43</span> dBm
+            </div>
+            <div class="control-group">
+                <label>Frequency (MHz):</label>
+                <input type="range" id="modal-freq" min="700" max="3500" value="1800" step="100">
+                <span id="modal-freq-val">1800</span> MHz
+            </div>
+            <div class="control-group">
+                <label>BS Height (m):</label>
+                <input type="range" id="modal-height" min="5" max="50" value="20" step="1">
+                <span id="modal-height-val">20</span> m
+            </div>
+            <div class="control-group">
+                <label>Coverage Radius (m):</label>
+                <input type="range" id="modal-radius" min="50" max="500" value="150" step="10">
+                <span id="modal-radius-val">150</span> m
+            </div>
+            <div class="control-group">
+                <label>Environment:</label>
+                <select id="modal-env">
+                    <option value="uma-los">UMa LOS</option>
+                    <option value="uma-nlos" selected>UMa NLOS</option>
+                    <option value="umi-los">UMi LOS</option>
+                    <option value="umi-nlos">UMi NLOS</option>
+                </select>
+            </div>
+
+            <div id="modal-progress" style="margin-top:20px; display:none;">
+
+                <!-- ── Working indicator (shown while running) ── -->
+                <div id="modal-working" style="display:none; align-items:center; gap:10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+                    <div style="flex-shrink:0; width:22px; height:22px; border:3px solid #e0f2fe; border-top:3px solid #0284c7; border-radius:50%; animation:cc-spin 0.8s linear infinite;"></div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:12px; font-weight:600; color:#0369a1; margin-bottom:2px;">Optimiser running…</div>
+                        <div id="modal-working-sub" style="font-size:11px; color:#0284c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Initialising coverage matrix</div>
+                    </div>
+                    <div style="flex-shrink:0; font-size:18px;" id="modal-working-pulse">🔄</div>
+                </div>
+                <style>
+                    @keyframes cc-spin { to { transform: rotate(360deg); } }
+                    @keyframes cc-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+                    #modal-working-pulse { animation: cc-pulse 1.2s ease-in-out infinite; }
+                    #modal-bar { transition: width 0.4s ease, background 0.4s ease; }
+                </style>
+
+                <!-- ── Stats row ── -->
+                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                    <span>📈 Coverage: <span id="modal-cov">0</span>%</span>
+                    <span>📡 BS placed: <span id="modal-bs">0</span></span>
+                    <span>⚡ Gap: <span id="modal-gap">100</span>%</span>
+                </div>
+
+                <!-- ── Progress bar (animated stripe while running) ── -->
+                <div style="background:#e2e8f0; border-radius:6px; height:10px; margin-bottom:12px; overflow:hidden;">
+                    <div id="modal-bar" style="height:100%; width:0%; background:#16a34a; border-radius:6px; position:relative;"></div>
+                </div>
+                <style>
+                    #modal-bar.running {
+                        background: repeating-linear-gradient(
+                            90deg,
+                            #16a34a 0px, #22c55e 20px, #16a34a 40px
+                        );
+                        background-size: 40px 100%;
+                        animation: cc-stripe 0.6s linear infinite;
+                    }
+                    @keyframes cc-stripe {
+                        from { background-position: 0 0; }
+                        to   { background-position: 40px 0; }
+                    }
+                </style>
+
+                <canvas id="modal-live-map" width="400" height="200" style="width:100%; background:#0f172a; border-radius:8px; margin-bottom:10px;"></canvas>
+                <div id="modal-step" style="font-size:11px; color:#475569;">Starting...</div>
+            </div>
+
+            <div id="modal-result" style="display:none; margin-top:15px; background:#f0fdf4; padding:12px; border-radius:8px;">
+                <strong>✅ Optimisation complete</strong>
+                <div>Final coverage: <span id="final-cov">0</span>% (with buildings + crowds)</div>
+                <div>Base stations placed: <span id="final-bs">0</span></div>
+                <div style="margin-top:10px;">
+                    <button id="apply-bs-btn" class="btn btn-primary">📡 Apply to Interactive Mode</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    
+    <!-- All JavaScript modules -->
+    <script src="path-loss-models.js"></script>
+    <script src="building-detection.js"></script>
+    <script src="worker-manager.js"></script>
+    <script src="script.js"></script>
+    <script src="interactive-mode.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-// contour-chain-worker.js – Pure Matrix-Based Coverage Algorithm (COMPLETE & FIXED)
+// contour-chain-worker.js – Pure Matrix-Based Coverage Algorithm 
 // ═══════════════════════════════════════════════════════════════════
 // Now with crowd blockage loss (3GPP TR 38.901 Model A)
 // Receives optional `crowdData` array: [{ center: {x,z}, radius, density }]

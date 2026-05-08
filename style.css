@@ -452,12 +452,10 @@ body {
     color: #dd6b20;
 }
 
-/* Ensure all tool sections have proper spacing */
 .tool-section {
     margin-top: 15px;
 }
 
-/* Selection mode indicator */
 .selecting-mode {
     position: fixed;
     top: 20px;

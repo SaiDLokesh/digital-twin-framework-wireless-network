@@ -1,10 +1,8 @@
 // ============================================================
 //  path-loss-models.js  –  shared 3GPP path-loss utilities
-//  Loaded in every worker via:  importScripts('path-loss-models.js')
-//  Also loaded in the main thread via:  <script src="path-loss-models.js">
 // ============================================================
 
-// ── SimpleBox3 (worker-safe, no THREE dependency) ────────────
+// ── SimpleBox3 (worker-safe) ────────────
 class SimpleBox3 {
     constructor(min, max) { this.min = min; this.max = max; }
     containsPoint(p) {
@@ -138,9 +136,6 @@ function calcBuildingPenetrationLoss(txPos, rxPos, freqMHz, buildingData) {
     return Math.min(totalLoss, PRACTICAL_BUILDING_CAP);
 }
 
-// ── Pre-baked noise table (avoids per-point Math.random) ─────
-// Workers call makeNoiseTable(n) once before their loop,
-// then index into it with (i % NOISE_TABLE_SIZE).
 const NOISE_TABLE_SIZE = 4096;
 function makeNoiseTable(amplitude = 8) {
     const t = new Float32Array(NOISE_TABLE_SIZE);

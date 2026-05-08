@@ -1,7 +1,7 @@
-// throughput-worker.js  –  optimised
+// throughput-worker.js  
 importScripts('path-loss-models.js');
 
-// ── LTE tables (unchanged data, same structure) ───────────────
+// ── LTE tables ───────────────
 const SINR_TO_CQI = [
     { sinrMin:-100, sinrMax:-6  , cqi:0,  mcs:null, tbsIndex:null, modulation:null    },
     { sinrMin:-6,   sinrMax:-4.1, cqi:1,  mcs:1,    tbsIndex:1,    modulation:'QPSK'  },

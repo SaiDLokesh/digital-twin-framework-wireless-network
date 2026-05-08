@@ -1,4 +1,4 @@
-// multi-coverage-worker.js  –  optimised
+// multi-coverage-worker.js  
 importScripts('path-loss-models.js');
 
 const BS_COLORS = [
@@ -26,7 +26,6 @@ class MultiCoverageWorker {
             const { resolution, minX, maxX, minY, maxY, minZ, maxZ } = gridParams;
             // Use caller-supplied threshold (e.g. -145 dBm) or fall back to -120
             const MIN_SIGNAL = (typeof minSignal === 'number') ? minSignal : -120;
-            // ignoreRadius=true means full-map mode: evaluate all grid points regardless of BS radius
             const skipByRadius = !ignoreRadius;
 
             const xSteps = Math.ceil((maxX - minX) / resolution);
@@ -105,7 +104,7 @@ class MultiCoverageWorker {
                                 }
                                 pl += Math.min(crowdLoss, 30);
                             }
-                            // ────────────────────────────────────────────────────
+                            
 
                             pl += bsNoise[i][bsNoiseIdx[i]++ & (NOISE_TABLE_SIZE - 1)];
 

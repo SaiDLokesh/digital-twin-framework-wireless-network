@@ -1,4 +1,4 @@
-// delay-worker.js  –  optimised
+// delay-worker.js  
 importScripts('path-loss-models.js');
 
 class DelayWorker {
@@ -61,7 +61,7 @@ class DelayWorker {
 
                         const d2D = Math.sqrt(dx2D);
 
-                        // Cluster delays (regenerated per point – stochastic model)
+                        // Cluster delays 
                         const clusterDelays = this.generateClusterDelays(numClusters, baseDS, rTau, isLOS);
                         let rmsDS = this.calcRMS(clusterDelays);
 

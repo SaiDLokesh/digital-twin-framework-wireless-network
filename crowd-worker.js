@@ -5,7 +5,7 @@
 importScripts('path-loss-models.js');
 
 // ── Model A constants (3GPP TR 38.901 Table 7.6.4.2-1) ───────
-const MODEL_A_LOSS_DB   = 15;   // fixed dB penalty per blocker in path
+const MODEL_A_LOSS_DB   = 15;   // dB penalty per blocker in path
 const BLOCKER_WIDTH_M   = 0.3;  // shoulder width (m)
 const BLOCKER_HEIGHT_M  = 1.7;  // average human height (m)
 
@@ -40,7 +40,7 @@ class CrowdWorker {
             const fcGHz      = frequency / 1000;
             const useModelB  = fcGHz >= 6;          // switch at 6 GHz
             const r          = crowdRadius;
-            const MIN_SIG    = -130;  // extended to show full crowd circle shape
+            const MIN_SIG    = -130;  
             const sigmaEff   = sigma || (r * 0.5);
             const lambda     = 0.3 / fcGHz;         // wavelength (m)
 

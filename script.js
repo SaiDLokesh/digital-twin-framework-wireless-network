@@ -131,7 +131,6 @@ function init() {
     makeDraggable(panel);
     makeResizable(panel);
     
-    // Workers are initialised after building detection (in loadModel callback)
     
     // Start animation loop
     animate();
@@ -218,7 +217,7 @@ function loadModel() {
             scene.add(ground);
 
             buildingDetection = initializeBuildingDetection(scene);
-            window.buildingDetection = buildingDetection;  // expose for interactive-mode.js
+            window.buildingDetection = buildingDetection;  
             initWorkersWithBuildingData();
 
             console.log(
@@ -227,7 +226,6 @@ function loadModel() {
 
             if (buildingDetection.hollowBuildings.length === 0) {
                 console.warn("No buildings were detected in the loaded model.");
-    // alert("No buildings detected → penetration loss calculations will be skipped.");
             }
             
         },
@@ -332,7 +330,7 @@ function setupEventListeners() {
             document.getElementById('fairness-tool').style.display = 'block';
         } else if (currentTool === 'interactive') {
             document.getElementById('interactive-tool').style.display = '';
-            initInteractiveMode();   // we'll define this function
+            initInteractiveMode();   
         }
         
 
@@ -1076,7 +1074,6 @@ async function analyzeCoverage3D() {
             },
             rayTracingEnabled,
             groundLevel,
-            // buildingData is sent once via workerManager.setBuildingData(), not per task
         };
         
         // Store the current task
@@ -1623,7 +1620,6 @@ function updateBSVisual(index) {
     }
 
     // CREATE THE PYRAMID
-    // Parameters: Radius (0.5 = Small), Height (15 = Big), Segments (4 = Pyramid)
     const geometry = new THREE.ConeGeometry(2.5, 50, 4);
     const material = new THREE.MeshPhongMaterial({ 
         color: bs.color, 
@@ -2025,8 +2021,6 @@ function createMultiCoverageVisualization(coveragePoints) {
 }
 
 // ── Interactive mode heatmap ────────────────────────────────────────────────
-// Renders a signal-strength point cloud whose colour palette is anchored to
-// the caller-supplied minRSSI floor instead of the fixed -120 dBm bin.
 function createInteractiveHeatmap(coveragePoints, minRSSI) {
     if (!coveragePoints || coveragePoints.length === 0) return;
 
@@ -3632,7 +3626,6 @@ function makeResizable(el) {
     });
 }
 
-// ── Render-on-demand: only render when something changes ──────
 let _needsRender = true;
 function markNeedsRender() { _needsRender = true; }
 
@@ -3883,14 +3876,12 @@ function drawCrowdHeatmap(crowdPts, resolution, groundY) {
     ];
 
     const tileSize = Math.max(resolution * 0.95, 1.0);
-    // Place heatmap just above the ground (groundY + tiny offset)
     const tileY = (groundY !== undefined ? groundY : 0) + 0.15;
 
     bands.forEach(band => {
         const pts = crowdPts.filter(p => p.signalStrength >= band.min && p.signalStrength < band.max);
         if (pts.length === 0) return;
 
-        // Fresh geometry per band — do NOT call rotateX on geometry (mutates in place)
         const geo = new THREE.PlaneGeometry(tileSize, tileSize);
         const mat = new THREE.MeshBasicMaterial({
             color: band.color, transparent: true, opacity: 0.65,
@@ -3901,7 +3892,6 @@ function drawCrowdHeatmap(crowdPts, resolution, groundY) {
         inst.renderOrder = 1;
 
         pts.forEach((pt, i) => {
-            // Create a fresh Object3D per tile — avoids rotation accumulation bug
             const d = new THREE.Object3D();
             d.position.set(pt.position.x, tileY, pt.position.z);
             d.rotation.set(-Math.PI / 2, 0, 0);  // flat on ground
@@ -3959,7 +3949,6 @@ async function analyzeCrowd() {
 
         const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
 
-        // Unpack typed arrays (worker path) or crowdPoints array (fallback path)
         let crowdPts = [];
         if (result.positions && result.pointCount > 0) {
             const pos = result.positions, sig = result.signals, den = result.densities;
@@ -4066,24 +4055,11 @@ function resetCrowdAnalysis() {
 
 // Initialize when page loads
 window.addEventListener('load', init);
-// ═══════════════════════════════════════════════════════════════
-// BS PLACEMENT OPTIMISER — appended per INTEGRATION_GUIDE.md §3c
-// ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════
-//  BS OPTIMISER  —  paste this entire block at the END of script.js
-//  Works with the existing workerManager, baseStations[], scene,
-//  removeAllBaseStations(), updateBSList(), updateGridRange() etc.
-// ═══════════════════════════════════════════════════════════════════
 
 // ── State ─────────────────────────────────────────────────────────
 let optimiserRunning = false;
 let optimiserResult  = null;
 
-// ── RSSI display helper (called by the range input's oninput) ──────
-// ── Compute auto ceiling + start from map geometry ─────────────────
-// Hexagonal packing: each BS footprint (hex cell) ≈ √3/2 × r²
-// ceiling  = ceil(mapArea / hexCellArea), capped at 30
-// startCount = ceil(ceiling / 4)  — ¼ of ceiling as a sensible lower bound
 function computeAutoCounts(mapBounds, radius) {
     const areaX      = mapBounds.maxX - mapBounds.minX;
     const areaZ      = mapBounds.maxZ - mapBounds.minZ;
@@ -4095,46 +4071,6 @@ function computeAutoCounts(mapBounds, radius) {
     return { ceiling, startCount };
 }
 
-// ── BS-mode checkbox toggle ─────────────────────────────────────────
-// Auto ON  → compute ceiling from current radius + map, set slider
-//            min=startCount, max=ceiling, value=startCount, show info row.
-// Auto OFF → restore slider to full manual range [1, 30], keep current value.
-function optToggleAutoBS(isAuto) {
-    const infoRow = document.getElementById('opt-auto-info');
-    const label   = document.getElementById('opt-max-bs-label');
-    const slider  = document.getElementById('opt-max-bs');
-
-    if (isAuto) {
-        // Compute from current radius + live map bounds
-        const radius    = parseFloat(document.getElementById('opt-radius').value);
-        const mapBounds = getMapBounds();
-        const { ceiling, startCount } = computeAutoCounts(mapBounds, radius);
-
-        // Update info row
-        document.getElementById('opt-info-ceiling').textContent = ceiling;
-        document.getElementById('opt-info-start').textContent   = startCount;
-        infoRow.style.display = '';
-
-        // Reconfigure slider: min=startCount, max=ceiling, value=startCount
-        slider.min   = startCount;
-        slider.max   = ceiling;
-        slider.value = startCount;
-        label.textContent = `Sweep start BS count (auto ceiling = ${ceiling})`;
-        optRefreshSliderTicks(startCount, ceiling);
-        document.getElementById('opt-max-bs-val').textContent = startCount;
-
-    } else {
-        infoRow.style.display = 'none';
-        // Restore to full manual range
-        slider.min   = 1;
-        slider.max   = 30;
-        slider.value = Math.max(1, Math.min(parseInt(slider.value), 30));
-        label.textContent = 'Max BSs the GA may use (upper bound)';
-        const v = parseInt(slider.value);
-        optRefreshSliderTicks(1, 30, v);
-        document.getElementById('opt-max-bs-val').textContent = v;
-    }
-}
 
 // Update the min / mid / max tick labels under the slider
 function optRefreshSliderTicks(min, max) {
@@ -4144,30 +4080,6 @@ function optRefreshSliderTicks(min, max) {
     document.getElementById('opt-bs-slider-mid').textContent = mid !== min && mid !== max ? mid : '';
 }
 
-// Called by oninput on the slider — updates display and, in auto mode, refreshes info start
-function optOnMaxBsSlider(val) {
-    const v      = parseInt(val);
-    const isAuto = document.getElementById('opt-auto-bs').checked;
-    document.getElementById('opt-max-bs-val').textContent = v;
-    if (isAuto) {
-        document.getElementById('opt-info-start').textContent = v;
-    }
-}
-
-function optUpdateRSSIDisplay(val) {
-    const v = parseInt(val);
-    document.getElementById('opt-rssi-value').textContent = v + ' dBm';
-
-    // Descriptive quality label
-    let label = '';
-    if      (v >= -70)  label = '🟢 Excellent — video streaming / VoLTE';
-    else if (v >= -85)  label = '🟡 Good — data & voice, reliable';
-    else if (v >= -100) label = '🟠 Moderate — basic data, some drops';
-    else if (v >= -110) label = '🔴 Weak — edge of coverage';
-    else                label = '⚫ Very weak — near noise floor';
-
-    document.getElementById('opt-rssi-label').textContent = label;
-}
 
 // ── Derive map bounds from the loaded 3D model ────────────────────
 function getMapBounds() {
@@ -4183,83 +4095,7 @@ function getMapBounds() {
     return { minX: -200, maxX: 200, minZ: -200, maxZ: 200 };
 }
 
-// ── Main optimiser run ────────────────────────────────────────────
-async function runBSOptimiser() {
-    if (optimiserRunning) return;
 
-    const isAuto      = document.getElementById('opt-auto-bs').checked;
-    const txPower     = parseFloat(document.getElementById('opt-tx-power').value);
-    const frequency   = parseFloat(document.getElementById('opt-frequency').value);
-    const txHeight    = parseFloat(document.getElementById('opt-tx-height').value);
-    const radius      = parseFloat(document.getElementById('opt-radius').value);
-    const environment = document.getElementById('opt-environment').value;
-    const minSpacing  = parseFloat(document.getElementById('opt-min-spacing').value);
-    const resolution  = parseFloat(document.getElementById('opt-resolution').value);
-    const minRSSI     = parseFloat(document.getElementById('opt-min-rssi').value);
-    const mapBounds   = getMapBounds();
-
-    const bsTemplate = { txPower, frequency, txHeight, radius, environment };
-
-    // UI — transition to running state
-    optimiserRunning = true;
-    document.getElementById('run-optimiser-btn').style.display    = 'none';
-    document.getElementById('cancel-optimiser-btn').style.display = '';
-    document.getElementById('opt-progress-box').style.display     = '';
-    document.getElementById('opt-result-box').style.display       = 'none';
-    document.getElementById('opt-gen-bar').style.width            = '0%';
-    document.getElementById('opt-gen-cur').textContent            = '0';
-    document.getElementById('opt-phase-cur').textContent          = '1';
-    document.getElementById('opt-phase-banner').style.display     = 'none';
-    document.getElementById('opt-prog-cov').textContent           = '—';
-    document.getElementById('opt-prog-gap').textContent           = '—';
-    document.getElementById('opt-prog-bs').textContent            = '—';
-    document.getElementById('opt-prog-fit').textContent           = '—';
-    // Clear live map
-    const lm = document.getElementById('opt-live-map');
-    if (lm) { const lc = lm.getContext('2d'); lc.fillStyle='#1e293b'; lc.fillRect(0,0,lm.width,lm.height); }
-
-    try {
-        let result;
-
-        if (isAuto) {
-            result = await runAutoSweep({
-                bsTemplate, mapBounds, resolution, minRSSI, minSpacing
-            });
-        } else {
-            const maxBS = parseInt(document.getElementById('opt-max-bs').value);
-            document.getElementById('opt-gen-max').textContent      = '80';
-            document.getElementById('opt-sweep-label').style.display = 'none';
-            document.getElementById('opt-phase-banner').style.display = 'none';
-
-            result = await workerManager.executeTask(
-                'bs-optimiser',
-                { maxBS, bsTemplate, mapBounds, evalResolution: resolution, minRSSI, minSpacing },
-                (p) => optProgressCallback(p, mapBounds, bsTemplate)
-            );
-        }
-
-        optimiserResult = result;
-        renderOptimiserResults(result, isAuto);
-
-    } catch (err) {
-        if (err.message !== 'Analysis cancelled' && err.message !== 'Optimisation cancelled') {
-            alert('Optimiser error: ' + err.message);
-            console.error(err);
-        }
-    } finally {
-        optimiserRunning = false;
-        document.getElementById('run-optimiser-btn').style.display    = '';
-        document.getElementById('cancel-optimiser-btn').style.display = 'none';
-        document.getElementById('opt-progress-box').style.display     = 'none';
-        document.getElementById('opt-sweep-label').style.display      = 'none';
-        document.getElementById('opt-phase-banner').style.display     = 'none';
-    }
-}
-
-// ── Auto sweep: run GA from startCount → ceiling ──────────────────
-// startCount = slider value (defaults to ¼ ceiling, user-overrideable).
-// Ceiling is always recomputed fresh from map + radius at run time.
-// Elbow detection stops early when coverage gain < 2% AND prev ≥ 85%.
 async function runAutoSweep({ bsTemplate, mapBounds, resolution, minRSSI, minSpacing }) {
     const { ceiling, startCount: defaultStart } = computeAutoCounts(mapBounds, bsTemplate.radius);
 
@@ -4434,13 +4270,6 @@ function drawLiveMap(placement, bounds, bsTemplate) {
     ctx.fillText(`Gen ${document.getElementById('opt-gen-cur').textContent}  ·  ${placement.length} BS`, pad + 2, H - 3);
 }
 
-function cancelBSOptimiser() {
-    workerManager.cancelAllTasks();
-    optimiserRunning = false;
-    document.getElementById('run-optimiser-btn').style.display    = '';
-    document.getElementById('cancel-optimiser-btn').style.display = 'none';
-    document.getElementById('opt-progress-box').style.display     = 'none';
-}
 
 // ── Render results ────────────────────────────────────────────────
 const BS_PALETTE = [
@@ -4506,7 +4335,6 @@ function renderOptimiserResults(result, isAuto) {
             </div>`;
     });
 
-    // Draw sweep coverage chart (auto mode) or convergence chart (manual mode)
     if (isAuto && result._sweepData) {
         drawSweepChart(result._sweepData, activeBSCount);
     } else {
@@ -4703,110 +4531,9 @@ function drawHexLayout(placement, bounds, uncovered) {
     });
 }
 
-// ── Apply to Multi-Coverage tool ──────────────────────────────────
-function applyOptimisedBSPositions() {
-    if (!optimiserResult) return;
-    const { bestPlacement, bsTemplate, activeBSCount } = optimiserResult;
 
-    // Clear existing BSs first
-    if (typeof removeAllBaseStations === 'function') removeAllBaseStations();
-
-    bestPlacement.forEach((pos, i) => {
-        const bs = {
-            name:             `OPT-${i + 1}`,
-            color:            BS_PALETTE[i % BS_PALETTE.length],
-            txPower:          bsTemplate.txPower,
-            frequency:        bsTemplate.frequency,
-            txHeight:         bsTemplate.txHeight,
-            radius:           bsTemplate.radius,
-            environment:      bsTemplate.environment,
-            antennaAzimuth:   0,
-            antennaBeamwidth: 360,
-            antennaGain:      0,
-            rayTracingEnabled:false,
-            position:         { x: pos.x, y: bsTemplate.txHeight, z: pos.z },
-            index:            i
-        };
-
-        baseStations.push(bs);
-        bsMarkers[i] = null;
-        bsLabels[i]  = null;
-        updateBSVisual(i);
-    });
-
-    // Reindex and refresh list
-    baseStations.forEach((bs, i) => bs.index = i);
-    updateBSList();
-    if (typeof updateGridRange === 'function') updateGridRange();
-
-    // Switch to multi-coverage tab
-    const sel = document.getElementById('tool-select');
-    if (sel) { sel.value = 'multi-coverage'; sel.dispatchEvent(new Event('change')); }
-
-    alert(`✅ ${activeBSCount} optimised BSs applied.\nClick "Analyse Coverage" to simulate.`);
-}
-
-// ── Export results ────────────────────────────────────────────────
-function exportOptimiserResults() {
-    if (!optimiserResult) return;
-    const { bestPlacement, finalStats, history, bsTemplate, activeBSCount, minRSSI,
-            _sweepData, _sweepCeiling } = optimiserResult;
-
-    const out = {
-        timestamp:       new Date().toISOString(),
-        algorithm:       'Genetic Algorithm (Minimise BS Count)',
-        mode:            _sweepData ? 'auto-sweep' : 'manual',
-        initialSeed:     'Hexagonal grid packing',
-        generations:     80, populationSize: 50,
-        minRSSI_dBm:     minRSSI,
-        bsTemplate,
-        result: {
-            bsCount:        activeBSCount,
-            coveragePct:    finalStats.coveragePct.toFixed(2),
-            avgSignal_dBm:  finalStats.avgSignal.toFixed(2),
-            coveredPoints:  finalStats.coveredPoints,
-            totalPoints:    finalStats.totalPoints
-        },
-        optimisedPositions: bestPlacement.map((p, i) => ({
-            bs: i + 1,
-            x:  +p.x.toFixed(2), z: +p.z.toFixed(2),
-            servedPoints: finalStats.bsCounts[i]
-        })),
-        convergence: history.map(h => ({
-            gen:      h.generation,
-            covPct:   +h.covPct.toFixed(2),
-            activeBS: h.activeBSCount,
-            fitness:  +h.best.toFixed(4)
-        }))
-    };
-
-    if (_sweepData) {
-        out.autoSweep = {
-            ceiling:      _sweepCeiling,
-            startCount:   optimiserResult._sweepStart ?? _sweepData[0]?.bsCount,
-            testedCounts: _sweepData.length,
-            sweepResults: _sweepData.map(s => ({
-                bsCount:     s.bsCount,
-                coveragePct: +s.coveragePct.toFixed(2)
-            }))
-        };
-    }
-
-    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = `bs-opt-${Date.now()}.json`; a.click();
-    URL.revokeObjectURL(url);
-}
 // ═══════════════════════════════════════════════════════════════════
-//  CONTOUR CHAIN BS PLACER  —  append this block to the END of script.js
-//  Also:
-//    1. Add  workerManager.createWorker('contour-chain', 'contour-chain-worker.js');
-//       inside initWorkersWithBuildingData()
-//    2. Add tool switching case in your tool-selector change handler:
-//       else if (currentTool === 'contour-chain') {
-//           document.getElementById('contour-chain-tool').style.display = '';
-//       }
+//  CONTOUR CHAIN BS PLACER  
 // ═══════════════════════════════════════════════════════════════════
 
 // ── State ─────────────────────────────────────────────────────────
@@ -5047,7 +4774,6 @@ function ccDrawLiveMap(placements, coveredPoints, frontierPoints, bounds, bsTemp
     ctx.fillText(`Coverage: ${covPct.toFixed(1)}%  ·  Gap: ${gapPct.toFixed(1)}%  ·  BS: ${placements.length}`, PAD + 4, barY + 11);
 }
 
-// ── Render final results ───────────────────────────────────────────
 function ccRenderResults(result) {
     document.getElementById('cc-result-box').style.display = '';
     document.getElementById('cc-res-cov').textContent = result.coveragePct + '%';
@@ -5279,7 +5005,6 @@ function handleSINRClick(intersects) {
     if (isSelectingSinrTx && intersects.length > 0) {
         const point = intersects[0].point.clone();
 
-        // Remove old marker if exists
         if (sinrTxMarker) {
             scene.remove(sinrTxMarker);
         }
@@ -5613,9 +5338,7 @@ function clearFairnessVisualization() {
 
 
 
-// Interactive Mode – initialisation (actual code moved to interactive-mode.js)
 function initInteractiveMode() {
-    // Called when tool is selected
     if (typeof window.setupInteractiveMode === 'function') {
         window.setupInteractiveMode(scene, camera, controls, renderer);
     } else {

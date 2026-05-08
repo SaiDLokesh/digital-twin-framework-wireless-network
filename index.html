@@ -42,7 +42,6 @@
                     <option value="delay">Delay Analysis</option>
                     <option value="throughput">Throughput Analysis</option>
                     <option value="crowd">Crowd Analysis</option>
-                    <option value="bs-optimiser">🧬 BS Placement Optimiser</option>
                     <option value="contour-chain">🔗 Contour Chain BS Placer</option>
                     <option value="sinr">📶 SINR Analysis</option>
                     <option value="fairness">⚖️ Fairness Analysis</option>
@@ -655,158 +654,6 @@
                 </div>
             </div>
 
-            <!-- BS Placement Optimiser Tool -->
-            <div id="bs-optimiser-tool" class="tool-section" style="display:none;">
-                <div class="point-info" style="background:#f0fdf4; border-left:4px solid #16a34a;">
-                    <strong>🧬 Genetic Algorithm — BS Count Minimiser</strong>
-                    <span style="font-size:12px; color:#555; display:block; margin-top:4px;">
-                        Finds the <em>minimum number</em> of BSs needed to cover the
-                        entire map above your RSSI threshold, using hexagonal geometry seeding.
-                    </span>
-                </div>
-                <div class="control-group" style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:12px; margin-bottom:14px;">
-                    <label style="color:#9a3412;">📶 Minimum Required RSSI (Coverage Threshold)</label>
-                    <input type="range" id="opt-min-rssi" min="-130" max="-60" value="-100" step="5" oninput="optUpdateRSSIDisplay(this.value)">
-                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#888; margin-top:2px;">
-                        <span>−130 dBm (very weak)</span><span>−60 dBm (excellent)</span>
-                    </div>
-                    <div class="value-display" id="opt-rssi-value" style="font-size:15px; font-weight:700; text-align:center; margin-top:6px; background:#fff; border:1px solid #fed7aa; color:#9a3412;">−100 dBm</div>
-                    <div id="opt-rssi-label" style="font-size:11px; color:#888; text-align:center; margin-top:3px;">Good indoor coverage</div>
-                </div>
-                <div class="control-group" style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px; margin-bottom:14px;">
-                    <label style="color:#1e40af; font-weight:700; display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:0;">
-                        <input type="checkbox" id="opt-auto-bs" onchange="optToggleAutoBS(this.checked)" style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer;">
-                        🤖 Auto-find optimal BS count
-                    </label>
-                    <div style="font-size:11px; color:#3b82f6; margin-top:4px; line-height:1.4;">
-                        When checked: ceiling &amp; start count are computed from map area ÷ BS footprint.
-                        Sweep begins at ¼ of ceiling — you can still drag the slider to override the start.
-                    </div>
-                    <div id="opt-auto-info" style="display:none; margin-top:8px; padding:7px 10px; background:#dbeafe; border-radius:6px; font-size:11px; color:#1d4ed8; line-height:1.6;">
-                        <div>📐 Map area ÷ BS footprint (hex) = <strong id="opt-info-ceiling">—</strong> max BSs</div>
-                        <div>🚀 Sweep starts at ¼ ceiling = <strong id="opt-info-start">—</strong> BSs &nbsp;·&nbsp; ends at ceiling &nbsp;·&nbsp; slider overrides start</div>
-                    </div>
-                    <div id="opt-max-bs-group" style="margin-top:10px;">
-                        <label id="opt-max-bs-label" style="font-size:12px; color:#374151;">Max BSs the GA may use (upper bound)</label>
-                        <input type="range" id="opt-max-bs" min="1" max="20" value="6" step="1" oninput="optOnMaxBsSlider(this.value)">
-                        <div style="display:flex; justify-content:space-between; font-size:10px; color:#9ca3af; margin-top:1px;">
-                            <span id="opt-bs-slider-min">1</span>
-                            <span id="opt-bs-slider-mid"></span>
-                            <span id="opt-bs-slider-max">20</span>
-                        </div>
-                        <div class="value-display" id="opt-max-bs-val">6</div>
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label>Tx Power (dBm)</label>
-                    <input type="range" id="opt-tx-power" min="20" max="50" value="43" step="1" oninput="document.getElementById('opt-tx-power-val').textContent=this.value+' dBm'">
-                    <div class="value-display" id="opt-tx-power-val">43 dBm</div>
-                </div>
-                <div class="control-group">
-                    <label>Frequency (MHz)</label>
-                    <input type="range" id="opt-frequency" min="700" max="3500" value="1800" step="100" oninput="document.getElementById('opt-frequency-val').textContent=this.value+' MHz'">
-                    <div class="value-display" id="opt-frequency-val">1800 MHz</div>
-                </div>
-                <div class="control-group">
-                    <label>BS Height (m)</label>
-                    <input type="range" id="opt-tx-height" min="5" max="50" value="20" step="1" oninput="document.getElementById('opt-tx-height-val').textContent=this.value+' m'">
-                    <div class="value-display" id="opt-tx-height-val">20 m</div>
-                </div>
-                <div class="control-group">
-                    <label>Coverage Radius per BS (m)</label>
-                    <input type="range" id="opt-radius" min="50" max="500" value="200" step="10" oninput="document.getElementById('opt-radius-val').textContent=this.value+' m'">
-                    <div class="value-display" id="opt-radius-val">200 m</div>
-                </div>
-                <div class="control-group">
-                    <label>Propagation Environment</label>
-                    <select id="opt-environment">
-                        <option value="uma-los">UMa LOS (open outdoor)</option>
-                        <option value="uma-nlos" selected>UMa NLOS (urban)</option>
-                        <option value="umi-los">UMi LOS (street level)</option>
-                        <option value="umi-nlos">UMi NLOS (dense urban)</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label>Min BS-to-BS Spacing (m)</label>
-                    <input type="range" id="opt-min-spacing" min="10" max="200" value="50" step="10" oninput="document.getElementById('opt-min-spacing-val').textContent=this.value+' m'">
-                    <div class="value-display" id="opt-min-spacing-val">50 m</div>
-                </div>
-                <div class="control-group">
-                    <label>Eval Grid Resolution (m) — coarser = faster GA</label>
-                    <input type="range" id="opt-resolution" min="5" max="30" value="10" step="5" oninput="document.getElementById('opt-resolution-val').textContent=this.value+' m'">
-                    <div class="value-display" id="opt-resolution-val">10 m</div>
-                </div>
-                <button class="btn btn-calculate" id="run-optimiser-btn" onclick="runBSOptimiser()" style="margin-top:6px;">🧬 Run GA Optimiser</button>
-                <button class="btn btn-secondary" id="cancel-optimiser-btn" onclick="cancelBSOptimiser()" style="width:100%; margin-top:6px; display:none;">✕ Cancel</button>
-                <div id="opt-progress-box" style="display:none; margin-top:14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
-                    <div id="opt-sweep-label" style="display:none; font-size:11px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:5px 8px; margin-bottom:8px; text-align:center;">
-                        🔍 Auto sweep — testing <span id="opt-sweep-cur">?</span> BS &nbsp;/&nbsp; ceiling <span id="opt-sweep-max">?</span> &nbsp;(start: <span id="opt-sweep-start">?</span>)
-                    </div>
-                    <div id="opt-phase-banner" style="display:none; font-size:11px; font-weight:700; color:#b45309; background:#fffbeb; border:1px solid #fcd34d; border-radius:6px; padding:5px 8px; margin-bottom:8px; text-align:center;">
-                        ⚡ Coverage gap &gt; threshold — injecting <span id="opt-inject-bs">?</span> extra BSs &nbsp;·&nbsp; Phase <span id="opt-phase-num">1</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:baseline; font-weight:600; color:#2d3748; margin-bottom:4px;">
-                        <span>Generation <span id="opt-gen-cur">0</span> / <span id="opt-gen-max">80</span></span>
-                        <span style="font-size:11px; color:#6b7280;">Phase <span id="opt-phase-cur">1</span></span>
-                    </div>
-                    <div style="background:#e2e8f0; border-radius:6px; height:10px; overflow:hidden; margin-bottom:10px;">
-                        <div id="opt-gen-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#4ade80); border-radius:6px; transition:width 0.3s ease;"></div>
-                    </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; font-size:11px; margin-bottom:10px;">
-                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #e2e8f0; text-align:center;">
-                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Coverage</div>
-                            <div id="opt-prog-cov" style="font-weight:700; color:#16a34a; font-size:13px;">—</div>
-                        </div>
-                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #e2e8f0; text-align:center;">
-                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Gap</div>
-                            <div id="opt-prog-gap" style="font-weight:700; color:#ef4444; font-size:13px;">—</div>
-                        </div>
-                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #e2e8f0; text-align:center;">
-                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Active BSs</div>
-                            <div id="opt-prog-bs" style="font-weight:700; color:#2563eb; font-size:13px;">—</div>
-                        </div>
-                        <div style="background:white; padding:7px 4px; border-radius:6px; border:1px solid #e2e8f0; text-align:center;">
-                            <div style="color:#666; margin-bottom:2px; font-size:10px;">Fitness</div>
-                            <div id="opt-prog-fit" style="font-weight:700; color:#7c3aed; font-size:13px;">—</div>
-                        </div>
-                    </div>
-                    <div style="font-size:10px; color:#6b7280; margin-bottom:3px; font-weight:600;">🗺️ Live BS layout — updates every generation</div>
-                    <canvas id="opt-live-map" height="130" style="width:100%; border-radius:6px; background:#1e293b; border:1px solid #334155; display:block;"></canvas>
-                </div>
-                <div id="opt-result-box" style="display:none; margin-top:14px; background:#f0fdf4; border-left:4px solid #16a34a; border-radius:8px; padding:15px;">
-                    <strong style="color:#166534; display:block; margin-bottom:10px; font-size:14px;">✅ Optimisation Complete</strong>
-                    <div id="opt-auto-summary" style="display:none; margin-bottom:10px; padding:8px 10px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; font-size:11px; color:#1d4ed8; line-height:1.5;"></div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
-                        <div style="background:white; padding:10px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
-                            <div style="font-size:10px; color:#666;">Coverage</div>
-                            <div id="opt-res-cov" style="font-size:1.3em; font-weight:700; color:#16a34a;">—</div>
-                        </div>
-                        <div style="background:white; padding:10px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
-                            <div style="font-size:10px; color:#666;">BSs Used</div>
-                            <div id="opt-res-bs" style="font-size:1.3em; font-weight:700; color:#2563eb;">—</div>
-                        </div>
-                        <div style="background:white; padding:10px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
-                            <div style="font-size:10px; color:#666;">Avg Signal</div>
-                            <div id="opt-res-sig" style="font-size:1.3em; font-weight:700; color:#7c3aed;">—</div>
-                        </div>
-                    </div>
-                    <div style="margin-bottom:12px;">
-                        <div style="font-size:11px; color:#555; margin-bottom:4px; font-weight:600;">📈 GA Convergence — Coverage % per Generation</div>
-                        <canvas id="opt-chart" height="90" style="width:100%; border-radius:6px; background:white; border:1px solid #e2e8f0;"></canvas>
-                    </div>
-                    <div style="margin-bottom:12px;">
-                        <div style="font-size:11px; color:#555; margin-bottom:4px; font-weight:600;">🔷 Optimised BS Layout (top view)</div>
-                        <canvas id="opt-hex-canvas" height="140" style="width:100%; border-radius:6px; background:#1e293b; border:1px solid #334155;"></canvas>
-                    </div>
-                    <div style="font-size:11px; color:#555; margin-bottom:6px; font-weight:600;">📡 Per-BS Statistics</div>
-                    <div id="opt-bs-list" style="max-height:200px; overflow-y:auto;"></div>
-                    <div style="display:flex; gap:8px; margin-top:12px;">
-                        <button class="btn btn-primary" onclick="applyOptimisedBSPositions()" style="flex:1; font-size:12px;">📡 Apply to Multi-Coverage</button>
-                        <button class="btn btn-secondary" onclick="exportOptimiserResults()" style="flex:1; font-size:12px;">⬇ Export JSON</button>
-                    </div>
-                </div>
-            </div>
-
             <!-- Contour Chain BS Placer Tool -->
             <div id="contour-chain-tool" class="tool-section" style="display:none;">
                 <div class="point-info" style="background:#f0f9ff; border-left:4px solid #0284c7;">
@@ -1185,7 +1032,7 @@
                 <div id="int-add-building-panel" class="int-form-panel" style="display:none; background:#f8fafc; border-radius:8px; margin-bottom:12px; padding:12px;">
                     <h4 style="margin-top:0;">🏢 Add Building</h4>
                     <div class="control-group"><label>Width (m):</label><input type="number" id="int-bld-width" value="15" step="1"></div>
-                    <div class="control-group"><label>Depth (m):</label><input type="number" id="int-bld-depth" value="15" step="1"></div>
+                    <div class="control-group"><label>Length (m):</label><input type="number" id="int-bld-depth" value="15" step="1"></div>
                     <div class="control-group"><label>Height (m):</label><input type="number" id="int-bld-height" value="10" step="1"></div>
                     <div class="control-group"><label>Material:</label><select id="int-bld-material"><option value="concrete">Concrete (15 dB/m)</option><option value="brick">Brick (12 dB/m)</option><option value="glass">Glass (2.5 dB/m)</option><option value="wood">Wood (6 dB/m)</option><option value="metal">Metal (40 dB/m)</option></select></div>
                     <div style="display:flex; gap:8px;"><button id="int-bld-confirm" class="btn btn-primary">Confirm & Place on Map</button><button id="int-bld-cancel" class="btn btn-secondary">Cancel</button></div>
